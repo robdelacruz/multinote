@@ -1,0 +1,19 @@
+notes - Inspired by PLATO Notes.
+
+http://thinkofit.com/plato/dwplato.htm
+
+---
+Every note or response appeared on its own screen. Since PLATO was designed for education, its architecture was biased toward carefully crafted full-screen displays. It was easy to place text or graphics at specific locations on the screen, but nearly impossible to scroll text. For Notes, this was both an advantage and a drawback. One nice feature was that the note title, date, time, and author's name always appeared in the same place. After using Notes for a while, your eye "knew" exactly where to look for these things.
+
+On the down side, each posting was limited to 20 lines of text so as to fit on one screen. The only way to overcome this was to write a series of responses, but that allowed other responders to slip in and disrupt the flow. Still, the 20-line limit had the virtue of encouraging brevity.
+
+Most options for reading notes required only a single keypress. While reading a response, for example, one keypress could perform any of these functions (among others):
+
+proceed to the next response
+go back to the previous response
+go back to the base note
+skip to the next base note
+begin writing a new response
+There were too many options to list them all on every screen. Most prompts were quite minimal, but a Help key was universally available. It would display a complete list of the options available at any point.
+---
+
