@@ -5,7 +5,7 @@ all: groupnotesd
 
 dep:
 	go get -u github.com/mattn/go-sqlite3
-	#go get -u github.com/gorilla/mux
+	go get -u gopkg.in/russross/blackfriday.v2
 
 groupnotesd: groupnotesd.go
 	go build -o groupnotesd groupnotesd.go

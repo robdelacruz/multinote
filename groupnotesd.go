@@ -8,8 +8,11 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"gopkg.in/russross/blackfriday.v2"
 )
 
 func main() {
@@ -47,10 +50,14 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			var noteid int64
 			var title, body, createdt, username string
 			rows.Scan(&noteid, &title, &body, &createdt, &username)
+			tcreatedt, err := time.Parse(time.RFC3339, createdt)
+			if err != nil {
+				tcreatedt = time.Now()
+			}
 
 			fmt.Fprintf(w, "<li>\n")
-			fmt.Fprintf(w, "    <a href=\"/note/%d\">%s</a>\n", noteid, title)
-			fmt.Fprintf(w, "    <p class=\"byline\">posted by %s <time>%s</time> (2 replies)</p>", username, createdt)
+			fmt.Fprintf(w, "<a href=\"/note/%d\">%s</a>\n", noteid, title)
+			printByline(w, username, tcreatedt)
 			fmt.Fprintf(w, "</li>\n")
 		}
 
@@ -97,9 +104,15 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<article>\n")
 		fmt.Fprintf(w, "<h1><a href=\"/note/%d\">%s</a></h1>", noteid, title)
-		fmt.Fprintf(w, "<p class=\"byline\">posted by %s <time>%s</time> (2 replies)</p>", username, createdt)
+		tcreatedt, err := time.Parse(time.RFC3339, createdt)
+		if err != nil {
+			tcreatedt = time.Now()
+		}
+		printByline(w, username, tcreatedt)
 
-		fmt.Fprintf(w, body)
+		//body = strings.ReplaceAll(body, "\r", "")
+		bodyMarkup := blackfriday.Run([]byte(body))
+		fmt.Fprintf(w, string(bodyMarkup))
 		fmt.Fprintf(w, "</article>\n")
 
 		fmt.Fprintf(w, `<article class="replies">
@@ -127,8 +140,12 @@ func newHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if r.Method == "POST" {
 			title := r.FormValue("title")
 			body := r.FormValue("body")
-			createdt := "2019-12-31"
+			createdt := time.Now().Format(time.RFC3339)
 			userid := "robdelacruz"
+
+			// Strip out linefeed chars so that CRLF becomes just CR.
+			// CRLF causes problems in markdown parsing.
+			body = strings.ReplaceAll(body, "\r", "")
 
 			s := "INSERT INTO note (title, body, createdt, user_id) VALUES (?, ?, ?, ?);"
 			stmt, err := db.Prepare(s)
@@ -162,6 +179,11 @@ func newHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		printPageFoot(w)
 	}
+}
+
+func printByline(w io.Writer, username string, tcreatedt time.Time) {
+	createdt := tcreatedt.Format("2 Jan 2006")
+	fmt.Fprintf(w, "<p class=\"byline\">posted by %s on <time>%s</time> (2 replies)</p>", username, createdt)
 }
 
 func printPageHead(w io.Writer) {
