@@ -57,8 +57,11 @@ nav .byline {
 }
 article h1 {
     margin: 0;
-    font-size: 1em;
-    font-weight: normal;
+    font-size: 1.2em;
+}
+.note-title {
+    text-decoration: none;
+    color: #addb67; /* green */
 }
 .links {
     list-style-type: none;
