@@ -40,6 +40,8 @@ footer {
     color: #888;
 }
 nav {
+    display: flex;
+    justify-content: space-between;
     margin: 1em 0;
     padding-bottom: 0.5em;
     border-bottom: 1px solid #ddd;
@@ -87,5 +89,14 @@ article h1 {
 .replies hr {
     border: dashed 1px;
     color: #888;
+}
+form label {
+    display: block;
+}
+form input, form textarea {
+    margin-bottom: 0.5em;
+}
+form .submit {
+    margin-top: 0.5em;
 }
 

@@ -26,6 +26,8 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.HandleFunc("/", notesHandler(db))
 	http.HandleFunc("/new/", newHandler(db))
+	http.HandleFunc("/login/", loginHandler(db))
+	http.HandleFunc("/logout/", logoutHandler(db))
 	http.HandleFunc("/note/", noteHandler(db))
 	fmt.Printf("Listening on %s...\n", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
@@ -37,7 +39,7 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 
 		printPageHead(w)
-		printPageNav(w)
+		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<ul class=\"links\">\n")
 
@@ -96,7 +98,12 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if r.Method == "POST" {
 			replybody := r.FormValue("replybody")
 			createdt := time.Now().Format(time.RFC3339)
-			userid := 2
+
+			userid, _ := getLoginUser(r, db)
+			if userid == "" {
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
 
 			// Strip out linefeed chars so that CRLF becomes just CR.
 			// CRLF causes problems in markdown parsing.
@@ -131,7 +138,7 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 
 		printPageHead(w)
-		printPageNav(w)
+		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<article>\n")
 		fmt.Fprintf(w, "<h1><a class=\"note-title\" href=\"/note/%d\">%s</a></h1>", noteid, title)
@@ -153,7 +160,7 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		s = "SELECT replybody, createdt, username FROM notereply LEFT OUTER JOIN user ON notereply.user_id = user.user_id WHERE note_id = ? ORDER BY notereply_id"
 		rows, err := db.Query(s, noteid)
 		if err != nil {
-			fmt.Fprintf(w, "<p class=\"byline\">Error loading replies</p>")
+			fmt.Fprintf(w, "<p class=\"byline\">Error loading replies</p>\n")
 			fmt.Fprintf(w, "</article>\n")
 			printPageFoot(w)
 			log.Fatal(err)
@@ -173,9 +180,9 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		fmt.Fprintf(w, `<form method="post">
-        <p class="byline">post comment:</p>
+        <label class="byline">post comment:</label>
         <textarea name="replybody" rows="10" cols="80"></textarea><br>
-        <button>add reply</button>
+        <button class="submit">add reply</button>
     </form>
 `)
 		fmt.Fprintf(w, "</article>\n")
@@ -190,7 +197,12 @@ func newHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			title := r.FormValue("title")
 			body := r.FormValue("body")
 			createdt := time.Now().Format(time.RFC3339)
-			userid := "robdelacruz"
+
+			userid, _ := getLoginUser(r, db)
+			if userid == "" {
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
 
 			// Strip out linefeed chars so that CRLF becomes just CR.
 			// CRLF causes problems in markdown parsing.
@@ -214,15 +226,84 @@ func newHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 
 		printPageHead(w)
-		printPageNav(w)
+		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, `
 <form action="/new/" method="post">
-    <p class="byline">title</p>
+    <label class="byline">title</label>
     <input name="title" type="text" size="50"><br>
-    <p class="byline">note</p>
+    <label class="byline">note</label>
     <textarea name="body" rows="25" cols="80"></textarea><br>
-    <button>add note</button>
+    <button class="submit">add note</button>
+</form>
+`)
+
+		printPageFoot(w)
+	}
+}
+
+func logoutHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c := http.Cookie{
+			Name:   "userid",
+			Value:  "",
+			Path:   "/",
+			MaxAge: 0,
+		}
+		http.SetCookie(w, &c)
+
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	}
+}
+
+func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		errMarkup := ""
+
+		if r.Method == "POST" {
+			username := r.FormValue("username")
+			password := r.FormValue("password")
+
+			s := "SELECT user_id FROM user WHERE username = ? AND password = ?"
+			row := db.QueryRow(s, username, password)
+
+			var userid int
+			err := row.Scan(&userid)
+			if err == sql.ErrNoRows {
+				errMarkup = "<p class=\"byline\">Incorrect username or password</p>\n"
+			} else if err != nil {
+				errMarkup = "<p class=\"byline\">Server error during login</p>\n"
+			} else {
+				suserid := strconv.Itoa(userid)
+				c := http.Cookie{
+					Name:  "userid",
+					Value: suserid,
+					Path:  "/",
+					// Expires: time.Now().Add(24 * time.Hour),
+				}
+				http.SetCookie(w, &c)
+
+				// Display notes list page.
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		if errMarkup != "" {
+			fmt.Fprintf(w, errMarkup)
+		}
+
+		fmt.Fprintf(w, `
+<form action="/login/" method="post">
+    <label class="byline">username</label>
+    <input name="username" type="text" size="20"><br>
+    <label class="byline">password</label>
+    <input name="password" type="password" size="20"><br>
+    <button class="submit">login</button>
 </form>
 `)
 
@@ -254,14 +335,45 @@ func printPageFoot(w io.Writer) {
 `)
 }
 
-func printPageNav(w io.Writer) {
-	fmt.Fprintf(w, `<nav>
-    <h1><a href="/">Group Notes</a></h1>
-    <a href="/">latest</a>
-    <a href="/new">new note</a>
-    <p class="byline">I reserve the right to be biased, it makes life more interesting.</p>
-</nav>
-`)
+func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+	_, username := getLoginUser(r, db)
+
+	fmt.Fprintf(w, "<nav>\n")
+
+	fmt.Fprintf(w, "<div>\n")
+	fmt.Fprintf(w, "<h1><a href=\"/\">Group Notes</a></h1>\n")
+	fmt.Fprintf(w, "<a href=\"/\">latest</a>\n")
+	if username != "" {
+		fmt.Fprintf(w, "<a href=\"/new\">new note</a>\n")
+	}
+	fmt.Fprintf(w, "<p class=\"byline\">I reserve the right to be biased, it makes life more interesting.</p>\n")
+	fmt.Fprintf(w, "</div>\n")
+
+	fmt.Fprintf(w, "<div>\n")
+	if username != "" {
+		fmt.Fprintf(w, "<span>%s</span>\n", username)
+		fmt.Fprintf(w, "<a href=\"/logout\">logout</a>\n")
+	} else {
+		fmt.Fprintf(w, "<span></span>\n")
+		fmt.Fprintf(w, "<a href=\"/login\">login</a>\n")
+	}
+	fmt.Fprintf(w, "</div>\n")
+
+	fmt.Fprintf(w, "</nav>\n")
+}
+
+func getLoginUser(r *http.Request, db *sql.DB) (string, string) {
+	userid := ""
+	username := ""
+	c, err := r.Cookie("userid")
+	if err == nil {
+		userid = c.Value
+		s := "SELECT username FROM user WHERE user_id = ?"
+		row := db.QueryRow(s, userid)
+		row.Scan(&username)
+	}
+
+	return userid, username
 }
 
 func parseMarkdown(s string) string {
