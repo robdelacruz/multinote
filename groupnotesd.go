@@ -43,7 +43,10 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<ul class=\"links\">\n")
 
-		s := "SELECT note_id, title, body, createdt, username FROM note LEFT OUTER JOIN user ON note.user_id = user.user_id ORDER BY createdt DESC;"
+		s := `SELECT note_id, title, body, createdt, username, (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies 
+FROM note 
+LEFT OUTER JOIN user ON note.user_id = user.user_id 
+ORDER BY createdt DESC;`
 		rows, err := db.Query(s)
 		if err != nil {
 			return
@@ -51,12 +54,14 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		for rows.Next() {
 			var noteid int64
 			var title, body, createdt, username string
-			rows.Scan(&noteid, &title, &body, &createdt, &username)
+			var numreplies int
+			rows.Scan(&noteid, &title, &body, &createdt, &username, &numreplies)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
 			fmt.Fprintf(w, "<li>\n")
 			fmt.Fprintf(w, "<a class=\"note-title\" href=\"/note/%d\">%s</a>\n", noteid, title)
-			printByline(w, username, tcreatedt)
+
+			printByline(w, username, tcreatedt, numreplies)
 			fmt.Fprintf(w, "</li>\n")
 		}
 
@@ -71,7 +76,7 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func parseNoteid(url string) int {
+func parseNoteid(url string) int64 {
 	sre := `^/note/(\d+)$`
 	re := regexp.MustCompile(sre)
 	matches := re.FindStringSubmatch(url)
@@ -82,7 +87,7 @@ func parseNoteid(url string) int {
 	if err != nil {
 		return -1
 	}
-	return noteid
+	return int64(noteid)
 }
 
 func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
@@ -123,11 +128,16 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		s := "SELECT title, body, createdt, username FROM note LEFT OUTER JOIN user ON note.user_id = user.user_id WHERE note_id = ? ORDER BY createdt DESC;"
+		s := `SELECT title, body, createdt, username , (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies 
+FROM note
+LEFT OUTER JOIN user ON note.user_id = user.user_id
+WHERE note_id = ?
+ORDER BY createdt DESC;`
 		row := db.QueryRow(s, noteid)
 
 		var title, body, createdt, username string
-		err := row.Scan(&title, &body, &createdt, &username)
+		var numreplies int
+		err := row.Scan(&title, &body, &createdt, &username, &numreplies)
 		if err == sql.ErrNoRows {
 			// note doesn't exist so redirect to notes list page.
 			log.Printf("noteid %d doesn't exist\n", noteid)
@@ -146,7 +156,7 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if err != nil {
 			tcreatedt = time.Now()
 		}
-		printByline(w, username, tcreatedt)
+		printByline(w, username, tcreatedt, numreplies)
 
 		bodyMarkup := parseMarkdown(body)
 		fmt.Fprintf(w, string(bodyMarkup))
@@ -311,9 +321,9 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func printByline(w io.Writer, username string, tcreatedt time.Time) {
+func printByline(w io.Writer, username string, tcreatedt time.Time, nreplies int) {
 	createdt := tcreatedt.Format("2 Jan 2006")
-	fmt.Fprintf(w, "<p class=\"byline\">posted by %s on <time>%s</time> (2 replies)</p>", username, createdt)
+	fmt.Fprintf(w, "<p class=\"byline\">posted by %s on <time>%s</time> (%d replies)</p>", username, createdt, nreplies)
 }
 
 func printPageHead(w io.Writer) {
