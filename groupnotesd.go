@@ -43,19 +43,22 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<ul class=\"links\">\n")
 
-		s := `SELECT note_id, title, body, createdt, username, (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies 
+		s := `SELECT note_id, title, body, createdt, username, 
+(SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies, 
+(SELECT MAX(createdt) FROM notereply where note.note_id = notereply.note_id) AS maxreplydt 
 FROM note 
 LEFT OUTER JOIN user ON note.user_id = user.user_id 
-ORDER BY createdt DESC;`
+ORDER BY MAX(createdt, maxreplydt) DESC;`
 		rows, err := db.Query(s)
 		if err != nil {
+			log.Fatal(err)
 			return
 		}
 		for rows.Next() {
 			var noteid int64
-			var title, body, createdt, username string
+			var title, body, createdt, username, maxreplydt string
 			var numreplies int
-			rows.Scan(&noteid, &title, &body, &createdt, &username, &numreplies)
+			rows.Scan(&noteid, &title, &body, &createdt, &username, &numreplies, &maxreplydt)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
 			fmt.Fprintf(w, "<li>\n")
