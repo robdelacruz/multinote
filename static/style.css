@@ -13,6 +13,12 @@ body {
     font-size: 0.8em;
     color: #888;
 }
+.byline a {
+    color: #888;
+}
+.actions {
+    margin: 0 0.2em;
+}
 a {
     color: #addb67; /* green links */
     color: #ecc48d; /* bright amber links */

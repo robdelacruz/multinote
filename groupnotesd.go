@@ -36,6 +36,8 @@ func main() {
 
 func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, loginUsername := getLoginUser(r, db)
+
 		w.Header().Set("Content-Type", "text/html")
 
 		printPageHead(w)
@@ -56,15 +58,15 @@ ORDER BY MAX(createdt, maxreplydt) DESC;`
 		}
 		for rows.Next() {
 			var noteid int64
-			var title, body, createdt, username, maxreplydt string
+			var title, body, createdt, noteUsername, maxreplydt string
 			var numreplies int
-			rows.Scan(&noteid, &title, &body, &createdt, &username, &numreplies, &maxreplydt)
+			rows.Scan(&noteid, &title, &body, &createdt, &noteUsername, &numreplies, &maxreplydt)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
 			fmt.Fprintf(w, "<li>\n")
 			fmt.Fprintf(w, "<a class=\"note-title\" href=\"/note/%d\">%s</a>\n", noteid, title)
 
-			printByline(w, username, tcreatedt, numreplies)
+			printByline(w, loginUsername, noteid, noteUsername, tcreatedt, numreplies)
 			fmt.Fprintf(w, "</li>\n")
 		}
 
@@ -103,6 +105,8 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
+		_, loginUsername := getLoginUser(r, db)
+
 		if r.Method == "POST" {
 			replybody := r.FormValue("replybody")
 			createdt := time.Now().Format(time.RFC3339)
@@ -138,9 +142,9 @@ WHERE note_id = ?
 ORDER BY createdt DESC;`
 		row := db.QueryRow(s, noteid)
 
-		var title, body, createdt, username string
+		var title, body, createdt, noteUsername string
 		var numreplies int
-		err := row.Scan(&title, &body, &createdt, &username, &numreplies)
+		err := row.Scan(&title, &body, &createdt, &noteUsername, &numreplies)
 		if err == sql.ErrNoRows {
 			// note doesn't exist so redirect to notes list page.
 			log.Printf("noteid %d doesn't exist\n", noteid)
@@ -159,7 +163,7 @@ ORDER BY createdt DESC;`
 		if err != nil {
 			tcreatedt = time.Now()
 		}
-		printByline(w, username, tcreatedt, numreplies)
+		printByline(w, loginUsername, noteid, noteUsername, tcreatedt, numreplies)
 
 		bodyMarkup := parseMarkdown(body)
 		fmt.Fprintf(w, string(bodyMarkup))
@@ -324,9 +328,17 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func printByline(w io.Writer, username string, tcreatedt time.Time, nreplies int) {
+func printByline(w io.Writer, loginUsername string, noteid int64, noteUsername string, tcreatedt time.Time, nreplies int) {
 	createdt := tcreatedt.Format("2 Jan 2006")
-	fmt.Fprintf(w, "<p class=\"byline\">posted by %s on <time>%s</time> (%d replies)</p>", username, createdt, nreplies)
+	fmt.Fprintf(w, "<p class=\"byline\">\n")
+	fmt.Fprintf(w, "posted by %s on <time>%s</time> (%d replies)", noteUsername, createdt, nreplies)
+	if noteUsername == loginUsername {
+		fmt.Fprintf(w, "<span class=\"actions\">\n")
+		fmt.Fprintf(w, "<a href=\"/note/%d?cmd=edit\">Edit</a>\n", noteid)
+		fmt.Fprintf(w, "<a href=\"/note/%d?cmd=del\">Delete</a>\n", noteid)
+		fmt.Fprintf(w, "</span>\n")
+	}
+	fmt.Fprintf(w, "</p>\n")
 }
 
 func printPageHead(w io.Writer) {
