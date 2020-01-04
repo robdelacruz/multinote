@@ -10,8 +10,9 @@ CREATE TABLE notereply (notereply_id INTEGER PRIMARY KEY NOT NULL, note_id INTEG
 DROP TABLE IF EXISTS user;
 CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password TEXT);
 
-INSERT INTO user (username, password) VALUES ('admin', 'password');
+INSERT INTO user (username, password) VALUES ('admin', '');
 INSERT INTO user (username, password) VALUES ('robdelacruz', '123');
+INSERT INTO user (username, password) VALUES ('lky', '');
 
 INSERT INTO note (title, body, createdt, user_id) VALUES ('Aimee Teagarden', 'All about Aimee Teagarden Hallmark show', '2019-12-01T14:00:00+08:00', 2);
 INSERT INTO note (title, body, createdt, user_id) VALUES ('Emma Fielding', 'All about Emma Fielding Hallmark show', '2019-12-02T14:00:00+08:00', 2);
