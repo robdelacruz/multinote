@@ -249,6 +249,30 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
+		if r.Method == "POST" {
+			title := r.FormValue("title")
+			body := r.FormValue("body")
+			createdt := time.Now().Format(time.RFC3339)
+
+			// Strip out linefeed chars so that CRLF becomes just CR.
+			// CRLF causes problems in markdown parsing.
+			body = strings.ReplaceAll(body, "\r", "")
+
+			s := "UPDATE note SET title = ?, body = ?, createdt = ? WHERE note_id = ?"
+			stmt, err := db.Prepare(s)
+			if err != nil {
+				log.Fatal(err)
+			}
+			_, err = stmt.Exec(title, body, createdt, noteid)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// Display notes list page.
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
 		w.Header().Set("Content-Type", "text/html")
 
 		printPageHead(w)
