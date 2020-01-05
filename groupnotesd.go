@@ -106,7 +106,7 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		_, loginUsername := getLoginUser(r, db)
+		loginUserid, loginUsername := getLoginUser(r, db)
 
 		if r.Method == "POST" {
 			replybody := r.FormValue("replybody")
@@ -167,7 +167,7 @@ ORDER BY createdt DESC;`
 		printByline(w, loginUsername, noteid, noteUsername, tcreatedt, numreplies)
 
 		bodyMarkup := parseMarkdown(body)
-		fmt.Fprintf(w, string(bodyMarkup))
+		fmt.Fprintf(w, bodyMarkup)
 		fmt.Fprintf(w, "</article>\n")
 
 		fmt.Fprintf(w, `<article class="replies">
@@ -202,18 +202,52 @@ ORDER BY createdt DESC;`
 			}
 			fmt.Fprintf(w, "</p>\n")
 			replybodyMarkup := parseMarkdown(replybody)
-			fmt.Fprintf(w, string(replybodyMarkup))
+			fmt.Fprintf(w, replybodyMarkup)
 			i++
 		}
 
-		fmt.Fprintf(w, `<form method="post">
-        <label class="byline">post comment:</label>
-        <textarea name="replybody" rows="10" cols="80"></textarea><br>
-        <button class="submit">add reply</button>
-    </form>
-`)
-		fmt.Fprintf(w, "</article>\n")
+		cmd := r.FormValue("cmd")
+		ireplyid, _ := strconv.Atoi(r.FormValue("replyid"))
+		replyid := int64(ireplyid)
 
+		var replybody, replycreatedt string
+		var replyUserid int64
+		if cmd == "edit" && replyid != 0 {
+			s := "SELECT replybody, createdt, user_id FROM notereply WHERE note_id = ? AND notereply_id = ?"
+			row := db.QueryRow(s, noteid, replyid)
+
+			err = row.Scan(&replybody, &replycreatedt, &replyUserid)
+			if err == sql.ErrNoRows {
+				log.Printf("notereplyid %d of noteid %d doesn't exist\n", replyid, noteid)
+				http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
+				return
+			}
+
+			// Allow only reply creator (todo: also admin) to edit the reply.
+			if replyUserid != loginUserid {
+				log.Printf("User '%s' doesn't have access to reply %d\n", loginUsername, replyid)
+				cmd = ""
+			}
+		}
+
+		fmt.Fprintf(w, "<form method=\"post\">\n")
+		fmt.Fprintf(w, "<input type=\"hidden\" name=\"replyid\" value=\"%d\">\n", replyid)
+
+		if cmd == "edit" && replyid != 0 {
+			tcreatedt, _ := time.Parse(time.RFC3339, replycreatedt)
+			createdt = tcreatedt.Format("2 Jan 2006")
+			fmt.Fprintf(w, "<label class=\"byline\">edit comment %s wrote on %s:</label>\n", loginUsername, createdt)
+			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\">%s</textarea><br>\n", replybody)
+			fmt.Fprintf(w, "<button class=\"submit\">update reply</button>\n")
+		} else {
+			fmt.Fprintf(w, "<label class=\"byline\">post comment:</label>\n")
+			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\"></textarea><br>\n")
+			fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
+		}
+
+		fmt.Fprintf(w, "</form>\n")
+
+		fmt.Fprintf(w, "</article>\n")
 		printPageFoot(w)
 	}
 }
@@ -274,16 +308,14 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			}
 			_, err = stmt.Exec(title, body, createdt, noteid)
 			if err != nil {
-				log.Fatal(err)
+				fmt.Printf("DB error updating noteid %d: %s\n", noteid, err)
+				fmt.Fprintf(w, "<p class=\"byline\">Error updating note</p>\n")
 			}
 
-			// Display notes list page.
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
+			http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-
 		printPageHead(w)
 		printPageNav(w, r, db)
 
@@ -307,8 +339,8 @@ func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			body := r.FormValue("body")
 			createdt := time.Now().Format(time.RFC3339)
 
-			userid, _ := getLoginUser(r, db)
-			if userid == -1 {
+			loginUserid, _ := getLoginUser(r, db)
+			if loginUserid == -1 {
 				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
 			}
@@ -322,7 +354,7 @@ func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			_, err = stmt.Exec(title, body, createdt, userid)
+			_, err = stmt.Exec(title, body, createdt, loginUserid)
 			if err != nil {
 				log.Fatal(err)
 			}
