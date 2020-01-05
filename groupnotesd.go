@@ -175,7 +175,7 @@ ORDER BY createdt DESC;`
 <p>Replies:</p>
 `)
 
-		s = "SELECT replybody, createdt, username FROM notereply LEFT OUTER JOIN user ON notereply.user_id = user.user_id WHERE note_id = ? ORDER BY notereply_id"
+		s = "SELECT notereply_id, replybody, createdt, username FROM notereply LEFT OUTER JOIN user ON notereply.user_id = user.user_id WHERE note_id = ? ORDER BY notereply_id"
 		rows, err := db.Query(s, noteid)
 		if err != nil {
 			fmt.Fprintf(w, "<p class=\"byline\">Error loading replies</p>\n")
@@ -186,12 +186,21 @@ ORDER BY createdt DESC;`
 		}
 		i := 1
 		for rows.Next() {
-			var replybody, createdt, username string
-			rows.Scan(&replybody, &createdt, &username)
+			var replyid int64
+			var replybody, createdt, replyUsername string
+			rows.Scan(&replyid, &replybody, &createdt, &replyUsername)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 			createdt = tcreatedt.Format("2 Jan 2006")
 
-			fmt.Fprintf(w, "<p class=\"byline\">%d. %s wrote on %s:</p>", i, username, createdt)
+			fmt.Fprintf(w, "<p class=\"byline\">\n")
+			fmt.Fprintf(w, "%d. %s wrote on %s:", i, replyUsername, createdt)
+			if replyUsername == loginUsername {
+				fmt.Fprintf(w, "<span class=\"actions\">\n")
+				fmt.Fprintf(w, "<a href=\"/note/%d?replyid=%d&cmd=edit\">Edit</a>\n", noteid, replyid)
+				fmt.Fprintf(w, "<a href=\"/note/%d?replyid=%d&cmd=del\">Delete</a>\n", noteid, replyid)
+				fmt.Fprintf(w, "</span>\n")
+			}
+			fmt.Fprintf(w, "</p>\n")
 			replybodyMarkup := parseMarkdown(replybody)
 			fmt.Fprintf(w, string(replybodyMarkup))
 			i++
