@@ -16,6 +16,9 @@ body {
 .byline a {
     color: #888;
 }
+.error {
+    background-color: #F00;
+}
 .actions {
     margin: 0 0.2em;
 }

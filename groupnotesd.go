@@ -26,10 +26,11 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.HandleFunc("/", notesHandler(db))
 	http.HandleFunc("/note/", noteHandler(db))
-	http.HandleFunc("/new/", newNoteHandler(db))
-	http.HandleFunc("/edit/", editNoteHandler(db))
-	http.HandleFunc("/newreply/", newNoteReplyHandler(db))
-	http.HandleFunc("/editreply/", editNoteReplyHandler(db))
+	http.HandleFunc("/newnote/", newNoteHandler(db))
+	http.HandleFunc("/editnote/", editNoteHandler(db))
+	//http.HandleFunc("/delnote/", delNoteHandler(db))
+	http.HandleFunc("/newreply/", newReplyHandler(db))
+	http.HandleFunc("/editreply/", editReplyHandler(db))
 	http.HandleFunc("/login/", loginHandler(db))
 	http.HandleFunc("/logout/", logoutHandler(db))
 	fmt.Printf("Listening on %s...\n", port)
@@ -124,7 +125,6 @@ ORDER BY createdt DESC;`
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-
 		printPageHead(w)
 		printPageNav(w, r, db)
 
@@ -140,10 +140,9 @@ ORDER BY createdt DESC;`
 		fmt.Fprintf(w, bodyMarkup)
 		fmt.Fprintf(w, "</article>\n")
 
-		fmt.Fprintf(w, `<article class="replies">
-<hr>
-<p>Replies:</p>
-`)
+		fmt.Fprintf(w, "<article class=\"replies\">\n")
+		fmt.Fprintf(w, "<hr>\n")
+		fmt.Fprintf(w, "<p>Replies:</p>\n")
 
 		s = "SELECT notereply_id, replybody, createdt, username FROM notereply LEFT OUTER JOIN user ON notereply.user_id = user.user_id WHERE note_id = ? ORDER BY notereply_id"
 		rows, err := db.Query(s, noteid)
@@ -166,7 +165,8 @@ ORDER BY createdt DESC;`
 			fmt.Fprintf(w, "%d. %s wrote on %s:", i, replyUsername, createdt)
 			if replyUsername == loginUsername {
 				fmt.Fprintf(w, "<span class=\"actions\">\n")
-				fmt.Fprintf(w, "<a href=\"/editreply/?noteid=%d&replyid=%d\">Edit</a>\n", noteid, replyid)
+				fmt.Fprintf(w, "<a href=\"/editreply/?replyid=%d\">Edit</a>\n", replyid)
+				fmt.Fprintf(w, "<a href=\"/delreply/?replyid=%d\">Delete</a>\n", replyid)
 				fmt.Fprintf(w, "</span>\n")
 			}
 			fmt.Fprintf(w, "</p>\n")
@@ -175,8 +175,9 @@ ORDER BY createdt DESC;`
 			i++
 		}
 
+		// New Reply form
 		fmt.Fprintf(w, "<form action=\"/newreply/?noteid=%d\" method=\"post\">\n", noteid)
-		fmt.Fprintf(w, "<label class=\"byline\">post comment:</label>\n")
+		fmt.Fprintf(w, "<label class=\"byline\">enter reply:</label>\n")
 		fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\"></textarea><br>\n")
 		fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
 		fmt.Fprintf(w, "</form>\n")
@@ -188,48 +189,49 @@ ORDER BY createdt DESC;`
 
 func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
-			loginUserid, _ := getLoginUser(r, db)
-			if loginUserid == -1 {
-				log.Printf("No user logged in to create note\n")
-				http.Redirect(w, r, "/", http.StatusSeeOther)
-				return
-			}
+		var errmsg string
+		var title, body string
 
-			title := r.FormValue("title")
-			body := r.FormValue("body")
-			body = strings.ReplaceAll(body, "\r", "") // CRLF => CR
-			createdt := time.Now().Format(time.RFC3339)
-
-			s := "INSERT INTO note (title, body, createdt, user_id) VALUES (?, ?, ?, ?);"
-			stmt, err := db.Prepare(s)
-			if err != nil {
-				log.Fatal(err)
-			}
-			_, err = stmt.Exec(title, body, createdt, loginUserid)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// Display notes list page.
+		loginUserid, _ := getLoginUser(r, db)
+		if loginUserid == -1 {
+			log.Printf("No user logged in to create note\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html")
+		if r.Method == "POST" {
+			title = r.FormValue("title")
+			body = r.FormValue("body")
+			body = strings.ReplaceAll(body, "\r", "") // CRLF => CR
+			createdt := time.Now().Format(time.RFC3339)
 
+			s := "INSERT INTO note (title, body, createdt, user_id) VALUES (?, ?, ?, ?);"
+			_, err := sqlstmt(db, s).Exec(title, body, createdt, loginUserid)
+			if err != nil {
+				fmt.Printf("DB error creating note: %s\n", err)
+				errmsg = "A problem occured. Please try again."
+			}
+
+			if errmsg == "" {
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, `
-<form action="/new/" method="post">
-    <label class="byline">title</label>
-    <input name="title" type="text" size="50"><br>
-    <label class="byline">note</label>
-    <textarea name="body" rows="25" cols="80"></textarea><br>
-    <button class="submit">add note</button>
-</form>
-`)
+		fmt.Fprintf(w, "<form action=\"/newnote/\" method=\"post\">\n")
+		if errmsg != "" {
+			fmt.Fprintf(w, "<label class=\"error\">%s</label><br>\n", errmsg)
+		}
+		fmt.Fprintf(w, "<label class=\"byline\">title</label>\n")
+		fmt.Fprintf(w, "<input name=\"title\" type=\"text\" size=\"50\" value=\"%s\"><br>\n", title)
+		fmt.Fprintf(w, "<label class=\"byline\">note</label>\n")
+		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\" cols=\"80\">%s</textarea><br>\n", body)
+		fmt.Fprintf(w, "<button class=\"submit\">add note</button>\n")
+		fmt.Fprintf(w, "</form>\n")
 
 		printPageFoot(w)
 	}
@@ -237,14 +239,16 @@ func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		loginUserid, loginUsername := getLoginUser(r, db)
-		if loginUserid == -1 {
+		var errmsg string
+
+		noteid := idtoi(r.FormValue("noteid"))
+		if noteid == -1 {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		noteid := idtoi(r.FormValue("noteid"))
-		if noteid == -1 {
+		loginUserid, loginUsername := getLoginUser(r, db)
+		if loginUserid == -1 {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -270,8 +274,8 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if r.Method == "POST" {
-			title := r.FormValue("title")
-			body := r.FormValue("body")
+			title = r.FormValue("title")
+			body = r.FormValue("body")
 			createdt := time.Now().Format(time.RFC3339)
 
 			// Strip out linefeed chars so that CRLF becomes just CR.
@@ -279,25 +283,26 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			body = strings.ReplaceAll(body, "\r", "")
 
 			s := "UPDATE note SET title = ?, body = ?, createdt = ? WHERE note_id = ?"
-			stmt, err := db.Prepare(s)
-			if err != nil {
-				log.Fatal(err)
-			}
-			_, err = stmt.Exec(title, body, createdt, noteid)
+			_, err = sqlstmt(db, s).Exec(title, body, createdt, noteid)
 			if err != nil {
 				fmt.Printf("DB error updating noteid %d: %s\n", noteid, err)
-				fmt.Fprintf(w, "<p class=\"byline\">Error updating note</p>\n")
+				errmsg = "A problem occured. Please try again."
 			}
 
-			http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
+			if errmsg == "" {
+				http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
+				return
+			}
 		}
 
 		w.Header().Set("Content-Type", "text/html")
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<form action=\"/edit/\" method=\"post\">\n")
-		fmt.Fprintf(w, "<input name=\"noteid\" type=\"hidden\" value=\"%d\">\n", noteid)
+		fmt.Fprintf(w, "<form action=\"/editnote/?noteid=%d\" method=\"post\">\n", noteid)
+		if errmsg != "" {
+			fmt.Fprintf(w, "<label class=\"error\">%s</label><br>\n", errmsg)
+		}
 		fmt.Fprintf(w, "<label class=\"byline\">title</label>\n")
 		fmt.Fprintf(w, "<input name=\"title\" type=\"text\" size=\"50\" value=\"%s\"><br>\n", title)
 		fmt.Fprintf(w, "<label class=\"byline\">note</label>\n")
@@ -309,8 +314,17 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func newNoteReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+		var replybody string
+
+		loginUserid, _ := getLoginUser(r, db)
+		if loginUserid == -1 {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
 		noteid := idtoi(r.FormValue("noteid"))
 		if noteid == -1 {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -318,40 +332,114 @@ func newNoteReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if r.Method == "POST" {
-			userid, _ := getLoginUser(r, db)
-			if userid == -1 {
-				http.Redirect(w, r, "/", http.StatusSeeOther)
-				return
-			}
-
-			replybody := r.FormValue("replybody")
+			replybody = r.FormValue("replybody")
 			replybody = strings.ReplaceAll(replybody, "\r", "") // CRLF => CR
 			createdt := time.Now().Format(time.RFC3339)
 
 			s := "INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (?, ?, ?, ?)"
-			stmt, err := db.Prepare(s)
+			_, err := sqlstmt(db, s).Exec(noteid, replybody, createdt, loginUserid)
 			if err != nil {
-				log.Fatal(err)
+				fmt.Printf("DB error creating reply: %s\n", err)
+				errmsg = "A problem occured. Please try again."
 			}
-			_, err = stmt.Exec(noteid, replybody, createdt, userid)
-			if err != nil {
-				log.Fatal(err)
+
+			if errmsg == "" {
+				http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
+				return
 			}
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		// Reply re-entry form
+		fmt.Fprintf(w, "<form action=\"/newreply/?noteid=%d\" method=\"post\">\n", noteid)
+		if errmsg != "" {
+			fmt.Fprintf(w, "<label class=\"error\">%s</label><br>\n", errmsg)
+		}
+		fmt.Fprintf(w, "<label class=\"byline\">enter reply:</label>\n")
+		fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\">%s</textarea><br>\n", replybody)
+		fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
+		fmt.Fprintf(w, "</form>\n")
+
+		printPageFoot(w)
+
 	}
 }
 
-func editNoteReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		loginUserid, _ := getLoginUser(r, db)
-		if loginUserid == -1 {
+		var errmsg string
+
+		replyid := idtoi(r.FormValue("replyid"))
+		if replyid == -1 {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		//noteid := idtoi(r.FormValue("noteid"))
+		loginUserid, loginUsername := getLoginUser(r, db)
+		if loginUserid == -1 {
+			log.Printf("Must be logged in to access replyid %d\n", replyid)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		var replybody string
+		var replyUserid int64
+		var noteid int64
+		s := "SELECT replybody, user_id, note_id FROM notereply WHERE notereply_id = ?"
+		row := db.QueryRow(s, replyid)
+		err := row.Scan(&replybody, &replyUserid, &noteid)
+		if err == sql.ErrNoRows {
+			log.Printf("replyid %d doesn't exist\n", replyid)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Only reply creator (todo: also admin) can edit the reply
+		if loginUserid != replyUserid {
+			log.Printf("User '%s' doesn't have access to replyid %d\n", loginUsername, replyid)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		if r.Method == "POST" {
+			replybody = r.FormValue("replybody")
+			replybody = strings.ReplaceAll(replybody, "\r", "") // CRLF => CR
+
+			s := "UPDATE notereply SET replybody = ? WHERE notereply_id = ?"
+			_, err = sqlstmt(db, s).Exec(replybody, replyid)
+			if err != nil {
+				fmt.Printf("DB error updating replyid %d: %s\n", replyid, err)
+				errmsg = "A problem occured. Please try again."
+			}
+
+			if errmsg == "" {
+				http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
+				return
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<form action=\"/editreply/?replyid=%d\" method=\"post\">\n", replyid)
+		if errmsg != "" {
+			fmt.Fprintf(w, "<label class=\"error\">%s</label><br>\n", errmsg)
+		}
+		fmt.Fprintf(w, "<label class=\"byline\">edit reply:</label>\n")
+		fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\">%s</textarea><br>\n", replybody)
+		fmt.Fprintf(w, "<button class=\"submit\">update reply</button>\n")
+		fmt.Fprintf(w, "</form>\n")
+
+		fmt.Fprintf(w, "</article>\n")
+		printPageFoot(w)
+
 	}
 }
 
@@ -430,8 +518,8 @@ func printByline(w io.Writer, loginUsername string, noteid int64, noteUsername s
 	fmt.Fprintf(w, "posted by %s on <time>%s</time> (%d replies)", noteUsername, createdt, nreplies)
 	if noteUsername == loginUsername {
 		fmt.Fprintf(w, "<span class=\"actions\">\n")
-		fmt.Fprintf(w, "<a href=\"/edit/?noteid=%d\">Edit</a>\n", noteid)
-		fmt.Fprintf(w, "<a href=\"/del/?noteid=%d\">Delete</a>\n", noteid)
+		fmt.Fprintf(w, "<a href=\"/editnote/?noteid=%d\">Edit</a>\n", noteid)
+		fmt.Fprintf(w, "<a href=\"/delnote/?noteid=%d\">Delete</a>\n", noteid)
 		fmt.Fprintf(w, "</span>\n")
 	}
 	fmt.Fprintf(w, "</p>\n")
@@ -465,7 +553,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "<h1><a href=\"/\">Group Notes</a></h1>\n")
 	fmt.Fprintf(w, "<a href=\"/\">latest</a>\n")
 	if username != "" {
-		fmt.Fprintf(w, "<a href=\"/new\">new note</a>\n")
+		fmt.Fprintf(w, "<a href=\"/newnote/\">new note</a>\n")
 	}
 	fmt.Fprintf(w, "<p class=\"byline\">I reserve the right to be biased, it makes life more interesting.</p>\n")
 	fmt.Fprintf(w, "</div>\n")
@@ -514,4 +602,12 @@ func idtoi(sid string) int64 {
 		return -1
 	}
 	return int64(n)
+}
+
+func sqlstmt(db *sql.DB, s string) *sql.Stmt {
+	stmt, err := db.Prepare(s)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return stmt
 }
