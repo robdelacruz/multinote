@@ -28,9 +28,10 @@ func main() {
 	http.HandleFunc("/note/", noteHandler(db))
 	http.HandleFunc("/newnote/", newNoteHandler(db))
 	http.HandleFunc("/editnote/", editNoteHandler(db))
-	//http.HandleFunc("/delnote/", delNoteHandler(db))
+	http.HandleFunc("/delnote/", delNoteHandler(db))
 	http.HandleFunc("/newreply/", newReplyHandler(db))
 	http.HandleFunc("/editreply/", editReplyHandler(db))
+	//	http.HandleFunc("/delreply/", delReplyHandler(db))
 	http.HandleFunc("/login/", loginHandler(db))
 	http.HandleFunc("/logout/", logoutHandler(db))
 	fmt.Printf("Listening on %s...\n", port)
@@ -308,6 +309,86 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<label class=\"byline\">note</label>\n")
 		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\" cols=\"80\">%s</textarea><br>\n", body)
 		fmt.Fprintf(w, "<button class=\"submit\">update note</button>\n")
+		fmt.Fprintf(w, "</form>\n")
+
+		printPageFoot(w)
+	}
+}
+
+func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+
+		noteid := idtoi(r.FormValue("noteid"))
+		if noteid == -1 {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		loginUserid, loginUsername := getLoginUser(r, db)
+		if loginUserid == -1 {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		s := "SELECT title, body, user_id FROM note WHERE note_id = ?"
+		row := db.QueryRow(s, noteid)
+
+		var title, body string
+		var noteUserid int64
+		err := row.Scan(&title, &body, &noteUserid)
+		if err == sql.ErrNoRows {
+			// note doesn't exist so redirect to notes list page.
+			log.Printf("noteid %d doesn't exist\n", noteid)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		// Allow only creators (todo: also admin) to delete the note.
+		if noteUserid != loginUserid {
+			log.Printf("User '%s' doesn't have access to note %d\n", loginUsername, noteid)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		if r.Method == "POST" {
+			s := "DELETE FROM note WHERE note_id = ?"
+			_, err = sqlstmt(db, s).Exec(noteid)
+			if err != nil {
+				fmt.Printf("DB error deleting noteid %d: %s\n", noteid, err)
+				errmsg = "A problem occured. Please try again."
+			}
+			if errmsg == "" {
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+
+			s = "DELETE FROM notereply WHERE note_id = ?"
+			_, err = sqlstmt(db, s).Exec(noteid)
+			if err != nil {
+				fmt.Printf("DB error deleting notereplies of noteid %d: %s\n", noteid, err)
+				errmsg = "A problem occured. Please try again."
+			}
+			if errmsg == "" {
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<form class=\"delete\" action=\"/delnote/?noteid=%d\" method=\"post\">\n", noteid)
+		fmt.Fprintf(w, "<h2>Delete Note</h2>")
+		if errmsg != "" {
+			fmt.Fprintf(w, "<label class=\"error\">%s</label><br>\n", errmsg)
+		}
+		fmt.Fprintf(w, "<label class=\"byline\">title</label>\n")
+		fmt.Fprintf(w, "<input class=\"readonly\" name=\"title\" type=\"text\" size=\"50\" readonly value=\"%s\"><br>\n", title)
+		fmt.Fprintf(w, "<label class=\"byline\">note</label>\n")
+		fmt.Fprintf(w, "<textarea class=\"readonly\" name=\"body\" rows=\"25\" cols=\"80\" readonly>%s</textarea><br>\n", body)
+		fmt.Fprintf(w, "<button class=\"submit\">delete note</button>\n")
 		fmt.Fprintf(w, "</form>\n")
 
 		printPageFoot(w)
@@ -607,7 +688,7 @@ func idtoi(sid string) int64 {
 func sqlstmt(db *sql.DB, s string) *sql.Stmt {
 	stmt, err := db.Prepare(s)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("db.Prepare() sql: '%s'\nerror: '%s'", s, err)
 	}
 	return stmt
 }

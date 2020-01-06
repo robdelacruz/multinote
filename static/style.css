@@ -19,6 +19,12 @@ body {
 .error {
     background-color: #F00;
 }
+.delete input, .delete textarea {
+    background-color: #aaa;
+}
+.delete button, .delete h2 {
+    color: #f00;
+}
 .actions {
     margin: 0 0.2em;
 }
