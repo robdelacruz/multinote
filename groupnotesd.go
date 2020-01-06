@@ -28,6 +28,8 @@ func main() {
 	http.HandleFunc("/note/", noteHandler(db))
 	http.HandleFunc("/new/", newNoteHandler(db))
 	http.HandleFunc("/edit/", editNoteHandler(db))
+	http.HandleFunc("/newreply/", newNoteReplyHandler(db))
+	http.HandleFunc("/editreply/", editNoteReplyHandler(db))
 	http.HandleFunc("/login/", loginHandler(db))
 	http.HandleFunc("/logout/", logoutHandler(db))
 	fmt.Printf("Listening on %s...\n", port)
@@ -48,7 +50,7 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		s := `SELECT note_id, title, body, createdt, username, 
 (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies, 
-(SELECT MAX(createdt) FROM notereply where note.note_id = notereply.note_id) AS maxreplydt 
+(SELECT COALESCE(MAX(createdt), '') FROM notereply where note.note_id = notereply.note_id) AS maxreplydt 
 FROM note 
 LEFT OUTER JOIN user ON note.user_id = user.user_id 
 ORDER BY MAX(createdt, maxreplydt) DESC;`
@@ -89,11 +91,7 @@ func parseNoteid(url string) int64 {
 	if matches == nil {
 		return -1
 	}
-	noteid, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return -1
-	}
-	return int64(noteid)
+	return idtoi(matches[1])
 }
 
 func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
@@ -106,35 +104,7 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		loginUserid, loginUsername := getLoginUser(r, db)
-
-		if r.Method == "POST" {
-			replybody := r.FormValue("replybody")
-			createdt := time.Now().Format(time.RFC3339)
-
-			userid, _ := getLoginUser(r, db)
-			if userid == -1 {
-				http.Redirect(w, r, "/", http.StatusSeeOther)
-				return
-			}
-
-			// Strip out linefeed chars so that CRLF becomes just CR.
-			// CRLF causes problems in markdown parsing.
-			replybody = strings.ReplaceAll(replybody, "\r", "")
-
-			s := "INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (?, ?, ?, ?)"
-			stmt, err := db.Prepare(s)
-			if err != nil {
-				log.Fatal(err)
-			}
-			_, err = stmt.Exec(noteid, replybody, createdt, userid)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
-			return
-		}
+		_, loginUsername := getLoginUser(r, db)
 
 		s := `SELECT title, body, createdt, username, (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies 
 FROM note
@@ -196,8 +166,7 @@ ORDER BY createdt DESC;`
 			fmt.Fprintf(w, "%d. %s wrote on %s:", i, replyUsername, createdt)
 			if replyUsername == loginUsername {
 				fmt.Fprintf(w, "<span class=\"actions\">\n")
-				fmt.Fprintf(w, "<a href=\"/note/%d?replyid=%d&cmd=edit\">Edit</a>\n", noteid, replyid)
-				fmt.Fprintf(w, "<a href=\"/note/%d?replyid=%d&cmd=del\">Delete</a>\n", noteid, replyid)
+				fmt.Fprintf(w, "<a href=\"/editreply/?noteid=%d&replyid=%d\">Edit</a>\n", noteid, replyid)
 				fmt.Fprintf(w, "</span>\n")
 			}
 			fmt.Fprintf(w, "</p>\n")
@@ -206,48 +175,62 @@ ORDER BY createdt DESC;`
 			i++
 		}
 
-		cmd := r.FormValue("cmd")
-		ireplyid, _ := strconv.Atoi(r.FormValue("replyid"))
-		replyid := int64(ireplyid)
-
-		var replybody, replycreatedt string
-		var replyUserid int64
-		if cmd == "edit" && replyid != 0 {
-			s := "SELECT replybody, createdt, user_id FROM notereply WHERE note_id = ? AND notereply_id = ?"
-			row := db.QueryRow(s, noteid, replyid)
-
-			err = row.Scan(&replybody, &replycreatedt, &replyUserid)
-			if err == sql.ErrNoRows {
-				log.Printf("notereplyid %d of noteid %d doesn't exist\n", replyid, noteid)
-				http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
-				return
-			}
-
-			// Allow only reply creator (todo: also admin) to edit the reply.
-			if replyUserid != loginUserid {
-				log.Printf("User '%s' doesn't have access to reply %d\n", loginUsername, replyid)
-				cmd = ""
-			}
-		}
-
-		fmt.Fprintf(w, "<form method=\"post\">\n")
-		fmt.Fprintf(w, "<input type=\"hidden\" name=\"replyid\" value=\"%d\">\n", replyid)
-
-		if cmd == "edit" && replyid != 0 {
-			tcreatedt, _ := time.Parse(time.RFC3339, replycreatedt)
-			createdt = tcreatedt.Format("2 Jan 2006")
-			fmt.Fprintf(w, "<label class=\"byline\">edit comment %s wrote on %s:</label>\n", loginUsername, createdt)
-			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\">%s</textarea><br>\n", replybody)
-			fmt.Fprintf(w, "<button class=\"submit\">update reply</button>\n")
-		} else {
-			fmt.Fprintf(w, "<label class=\"byline\">post comment:</label>\n")
-			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\"></textarea><br>\n")
-			fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
-		}
-
+		fmt.Fprintf(w, "<form action=\"/newreply/?noteid=%d\" method=\"post\">\n", noteid)
+		fmt.Fprintf(w, "<label class=\"byline\">post comment:</label>\n")
+		fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\"></textarea><br>\n")
+		fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
 		fmt.Fprintf(w, "</form>\n")
 
 		fmt.Fprintf(w, "</article>\n")
+		printPageFoot(w)
+	}
+}
+
+func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			loginUserid, _ := getLoginUser(r, db)
+			if loginUserid == -1 {
+				log.Printf("No user logged in to create note\n")
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+
+			title := r.FormValue("title")
+			body := r.FormValue("body")
+			body = strings.ReplaceAll(body, "\r", "") // CRLF => CR
+			createdt := time.Now().Format(time.RFC3339)
+
+			s := "INSERT INTO note (title, body, createdt, user_id) VALUES (?, ?, ?, ?);"
+			stmt, err := db.Prepare(s)
+			if err != nil {
+				log.Fatal(err)
+			}
+			_, err = stmt.Exec(title, body, createdt, loginUserid)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// Display notes list page.
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, `
+<form action="/new/" method="post">
+    <label class="byline">title</label>
+    <input name="title" type="text" size="50"><br>
+    <label class="byline">note</label>
+    <textarea name="body" rows="25" cols="80"></textarea><br>
+    <button class="submit">add note</button>
+</form>
+`)
+
 		printPageFoot(w)
 	}
 }
@@ -260,24 +243,18 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		snoteid := r.FormValue("noteid")
-		if snoteid == "" {
+		noteid := idtoi(r.FormValue("noteid"))
+		if noteid == -1 {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
-		inoteid, err := strconv.Atoi(snoteid)
-		if err != nil {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-		noteid := int64(inoteid)
 
 		s := "SELECT title, body, user_id FROM note WHERE note_id = ?"
 		row := db.QueryRow(s, noteid)
 
 		var title, body string
 		var noteUserid int64
-		err = row.Scan(&title, &body, &noteUserid)
+		err := row.Scan(&title, &body, &noteUserid)
 		if err == sql.ErrNoRows {
 			// note doesn't exist so redirect to notes list page.
 			log.Printf("noteid %d doesn't exist\n", noteid)
@@ -332,54 +309,49 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+func newNoteReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" {
-			title := r.FormValue("title")
-			body := r.FormValue("body")
-			createdt := time.Now().Format(time.RFC3339)
-
-			loginUserid, _ := getLoginUser(r, db)
-			if loginUserid == -1 {
-				http.Redirect(w, r, "/", http.StatusSeeOther)
-				return
-			}
-
-			// Strip out linefeed chars so that CRLF becomes just CR.
-			// CRLF causes problems in markdown parsing.
-			body = strings.ReplaceAll(body, "\r", "")
-
-			s := "INSERT INTO note (title, body, createdt, user_id) VALUES (?, ?, ?, ?);"
-			stmt, err := db.Prepare(s)
-			if err != nil {
-				log.Fatal(err)
-			}
-			_, err = stmt.Exec(title, body, createdt, loginUserid)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// Display notes list page.
+		noteid := idtoi(r.FormValue("noteid"))
+		if noteid == -1 {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html")
+		if r.Method == "POST" {
+			userid, _ := getLoginUser(r, db)
+			if userid == -1 {
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
 
-		printPageHead(w)
-		printPageNav(w, r, db)
+			replybody := r.FormValue("replybody")
+			replybody = strings.ReplaceAll(replybody, "\r", "") // CRLF => CR
+			createdt := time.Now().Format(time.RFC3339)
 
-		fmt.Fprintf(w, `
-<form action="/new/" method="post">
-    <label class="byline">title</label>
-    <input name="title" type="text" size="50"><br>
-    <label class="byline">note</label>
-    <textarea name="body" rows="25" cols="80"></textarea><br>
-    <button class="submit">add note</button>
-</form>
-`)
+			s := "INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (?, ?, ?, ?)"
+			stmt, err := db.Prepare(s)
+			if err != nil {
+				log.Fatal(err)
+			}
+			_, err = stmt.Exec(noteid, replybody, createdt, userid)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 
-		printPageFoot(w)
+		http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
+	}
+}
+
+func editNoteReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		loginUserid, _ := getLoginUser(r, db)
+		if loginUserid == -1 {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		//noteid := idtoi(r.FormValue("noteid"))
 	}
 }
 
@@ -517,13 +489,8 @@ func getLoginUser(r *http.Request, db *sql.DB) (int64, string) {
 		return -1, ""
 	}
 
-	suserid := c.Value
-	if suserid == "" {
-		return -1, ""
-	}
-
-	userid, err := strconv.Atoi(suserid)
-	if err != nil {
+	userid := idtoi(c.Value)
+	if userid == -1 {
 		return -1, ""
 	}
 
@@ -531,10 +498,20 @@ func getLoginUser(r *http.Request, db *sql.DB) (int64, string) {
 	s := "SELECT username FROM user WHERE user_id = ?"
 	row := db.QueryRow(s, userid)
 	row.Scan(&username)
-
-	return int64(userid), username
+	return userid, username
 }
 
 func parseMarkdown(s string) string {
 	return string(blackfriday.Run([]byte(s), blackfriday.WithExtensions(blackfriday.HardLineBreak)))
+}
+
+func idtoi(sid string) int64 {
+	if sid == "" {
+		return -1
+	}
+	n, err := strconv.Atoi(sid)
+	if err != nil {
+		return -1
+	}
+	return int64(n)
 }
