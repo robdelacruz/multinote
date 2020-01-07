@@ -31,7 +31,7 @@ func main() {
 	http.HandleFunc("/delnote/", delNoteHandler(db))
 	http.HandleFunc("/newreply/", newReplyHandler(db))
 	http.HandleFunc("/editreply/", editReplyHandler(db))
-	//	http.HandleFunc("/delreply/", delReplyHandler(db))
+	http.HandleFunc("/delreply/", delReplyHandler(db))
 	http.HandleFunc("/login/", loginHandler(db))
 	http.HandleFunc("/logout/", logoutHandler(db))
 	fmt.Printf("Listening on %s...\n", port)
@@ -352,23 +352,26 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if r.Method == "POST" {
-			s := "DELETE FROM note WHERE note_id = ?"
-			_, err = sqlstmt(db, s).Exec(noteid)
-			if err != nil {
-				fmt.Printf("DB error deleting noteid %d: %s\n", noteid, err)
-				errmsg = "A problem occured. Please try again."
-			}
-			if errmsg == "" {
-				http.Redirect(w, r, "/", http.StatusSeeOther)
-				return
-			}
+			// todo: use transaction or trigger instead?
 
+			// Delete note replies
 			s = "DELETE FROM notereply WHERE note_id = ?"
 			_, err = sqlstmt(db, s).Exec(noteid)
 			if err != nil {
 				fmt.Printf("DB error deleting notereplies of noteid %d: %s\n", noteid, err)
 				errmsg = "A problem occured. Please try again."
 			}
+
+			// Delete note
+			if err == nil {
+				s := "DELETE FROM note WHERE note_id = ?"
+				_, err = sqlstmt(db, s).Exec(noteid)
+				if err != nil {
+					fmt.Printf("DB error deleting noteid %d: %s\n", noteid, err)
+					errmsg = "A problem occured. Please try again."
+				}
+			}
+
 			if errmsg == "" {
 				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
@@ -521,6 +524,74 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "</article>\n")
 		printPageFoot(w)
 
+	}
+}
+
+func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+
+		replyid := idtoi(r.FormValue("replyid"))
+		if replyid == -1 {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		loginUserid, loginUsername := getLoginUser(r, db)
+		if loginUserid == -1 {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		var replybody string
+		var replyUserid int64
+		var noteid int64
+		s := "SELECT replybody, user_id, note_id FROM notereply WHERE notereply_id = ?"
+		row := db.QueryRow(s, replyid)
+		err := row.Scan(&replybody, &replyUserid, &noteid)
+		if err == sql.ErrNoRows {
+			log.Printf("replyid %d doesn't exist\n", replyid)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Only reply creator (todo: also admin) can delete the reply
+		if loginUserid != replyUserid {
+			log.Printf("User '%s' doesn't have access to replyid %d\n", loginUsername, replyid)
+			http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
+			return
+		}
+
+		if r.Method == "POST" {
+			s := "DELETE FROM notereply WHERE notereply_id = ?"
+			_, err = sqlstmt(db, s).Exec(replyid)
+			if err != nil {
+				fmt.Printf("DB error deleting replyid %d: %s\n", replyid, err)
+				errmsg = "A problem occured. Please try again."
+			}
+			if errmsg == "" {
+				http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
+				return
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<form class=\"delete\" action=\"/delreply/?replyid=%d\" method=\"post\">\n", replyid)
+		fmt.Fprintf(w, "<h2>Delete Reply</h2>")
+		if errmsg != "" {
+			fmt.Fprintf(w, "<label class=\"error\">%s</label><br>\n", errmsg)
+		}
+		fmt.Fprintf(w, "<textarea class=\"readonly\" name=\"replybody\" rows=\"10\" cols=\"80\">%s</textarea><br>\n", replybody)
+		fmt.Fprintf(w, "<button class=\"submit\">delete reply</button>\n")
+		fmt.Fprintf(w, "</form>\n")
+
+		printPageFoot(w)
 	}
 }
 
