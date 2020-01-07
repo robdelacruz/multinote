@@ -15,6 +15,8 @@ import (
 	"gopkg.in/russross/blackfriday.v2"
 )
 
+const ADMIN_ID = 1
+
 func main() {
 	port := "8000"
 
@@ -39,6 +41,16 @@ func main() {
 	log.Fatal(err)
 }
 
+func parseNoteid(url string) int64 {
+	sre := `^/note/(\d+)$`
+	re := regexp.MustCompile(sre)
+	matches := re.FindStringSubmatch(url)
+	if matches == nil {
+		return -1
+	}
+	return idtoi(matches[1])
+}
+
 func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, loginUsername := getLoginUser(r, db)
@@ -49,7 +61,6 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<ul class=\"links\">\n")
-
 		s := `SELECT note_id, title, body, createdt, username, 
 (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies, 
 (SELECT COALESCE(MAX(createdt), '') FROM notereply where note.note_id = notereply.note_id) AS maxreplydt 
@@ -74,39 +85,26 @@ ORDER BY MAX(createdt, maxreplydt) DESC;`
 			printByline(w, loginUsername, noteid, noteUsername, tcreatedt, numreplies)
 			fmt.Fprintf(w, "</li>\n")
 		}
+		fmt.Fprintf(w, "</ul>\n")
 
-		fmt.Fprintf(w, `</ul>
-<p class="pager-links">
-`)
-		fmt.Fprintf(w, `<a href="#">more</a>
-</p>
-`)
+		fmt.Fprintf(w, "<p class=\"pager-links\">\n")
+		fmt.Fprintf(w, "<a href=\"#\">more</a>\n")
+		fmt.Fprintf(w, "</p>\n")
 
 		printPageFoot(w)
 	}
-}
-
-func parseNoteid(url string) int64 {
-	sre := `^/note/(\d+)$`
-	re := regexp.MustCompile(sre)
-	matches := re.FindStringSubmatch(url)
-	if matches == nil {
-		return -1
-	}
-	return idtoi(matches[1])
 }
 
 func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		noteid := parseNoteid(r.URL.Path)
 		if noteid == -1 {
-			log.Printf("no noteid parameter in '%s'\n", r.URL.Path)
-			// no note id parameter, so redirect to notes list page.
+			log.Printf("display note: no noteid\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		_, loginUsername := getLoginUser(r, db)
+		loginUserid, loginUsername := getLoginUser(r, db)
 
 		s := `SELECT title, body, createdt, username, (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies 
 FROM note
@@ -120,7 +118,7 @@ ORDER BY createdt DESC;`
 		err := row.Scan(&title, &body, &createdt, &noteUsername, &numreplies)
 		if err == sql.ErrNoRows {
 			// note doesn't exist so redirect to notes list page.
-			log.Printf("noteid %d doesn't exist\n", noteid)
+			log.Printf("display note: noteid %d doesn't exist\n", noteid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -139,9 +137,8 @@ ORDER BY createdt DESC;`
 
 		bodyMarkup := parseMarkdown(body)
 		fmt.Fprintf(w, bodyMarkup)
-		fmt.Fprintf(w, "</article>\n")
 
-		fmt.Fprintf(w, "<article class=\"replies\">\n")
+		fmt.Fprintf(w, "<div class=\"replies\">\n")
 		fmt.Fprintf(w, "<hr>\n")
 		fmt.Fprintf(w, "<p>Replies:</p>\n")
 
@@ -175,13 +172,18 @@ ORDER BY createdt DESC;`
 			fmt.Fprintf(w, replybodyMarkup)
 			i++
 		}
+		fmt.Fprintf(w, "</div>\n")
 
 		// New Reply form
-		fmt.Fprintf(w, "<form action=\"/newreply/?noteid=%d\" method=\"post\">\n", noteid)
-		fmt.Fprintf(w, "<label class=\"byline\">enter reply:</label>\n")
-		fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\"></textarea><br>\n")
-		fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
-		fmt.Fprintf(w, "</form>\n")
+		if loginUserid == -1 {
+			fmt.Fprintf(w, "<label class=\"byline\"><a href=\"/login/\">Log in</a> to post a reply.</label>")
+		} else {
+			fmt.Fprintf(w, "<form action=\"/newreply/?noteid=%d\" method=\"post\">\n", noteid)
+			fmt.Fprintf(w, "<label class=\"byline\">reply as %s:</label>\n", loginUsername)
+			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\"></textarea><br>\n")
+			fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
+			fmt.Fprintf(w, "</form>\n")
+		}
 
 		fmt.Fprintf(w, "</article>\n")
 		printPageFoot(w)
@@ -195,7 +197,7 @@ func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		loginUserid, _ := getLoginUser(r, db)
 		if loginUserid == -1 {
-			log.Printf("No user logged in to create note\n")
+			log.Printf("new note: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -244,12 +246,14 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		noteid := idtoi(r.FormValue("noteid"))
 		if noteid == -1 {
+			log.Printf("edit note: no noteid\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
 		loginUserid, loginUsername := getLoginUser(r, db)
 		if loginUserid == -1 {
+			log.Printf("edit note: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -321,12 +325,14 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		noteid := idtoi(r.FormValue("noteid"))
 		if noteid == -1 {
+			log.Printf("del note: no noteid\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
 		loginUserid, loginUsername := getLoginUser(r, db)
 		if loginUserid == -1 {
+			log.Printf("del note: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -403,14 +409,16 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var errmsg string
 		var replybody string
 
-		loginUserid, _ := getLoginUser(r, db)
-		if loginUserid == -1 {
+		noteid := idtoi(r.FormValue("noteid"))
+		if noteid == -1 {
+			log.Printf("new reply: no noteid\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		noteid := idtoi(r.FormValue("noteid"))
-		if noteid == -1 {
+		loginUserid, _ := getLoginUser(r, db)
+		if loginUserid == -1 {
+			log.Printf("new reply: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -458,13 +466,14 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		replyid := idtoi(r.FormValue("replyid"))
 		if replyid == -1 {
+			log.Printf("edit reply: no noteid\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
 		loginUserid, loginUsername := getLoginUser(r, db)
 		if loginUserid == -1 {
-			log.Printf("Must be logged in to access replyid %d\n", replyid)
+			log.Printf("edit reply: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -533,12 +542,14 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		replyid := idtoi(r.FormValue("replyid"))
 		if replyid == -1 {
+			log.Printf("del reply: no noteid\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
 		loginUserid, loginUsername := getLoginUser(r, db)
 		if loginUserid == -1 {
+			log.Printf("del reply: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -605,13 +616,13 @@ func logoutHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 		http.SetCookie(w, &c)
 
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
 
 func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		errMarkup := ""
+		var errmsg string
 
 		if r.Method == "POST" {
 			username := r.FormValue("username")
@@ -623,9 +634,9 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			var userid int
 			err := row.Scan(&userid)
 			if err == sql.ErrNoRows {
-				errMarkup = "<p class=\"byline\">Incorrect username or password</p>\n"
+				errmsg = "Incorrect username or password"
 			} else if err != nil {
-				errMarkup = "<p class=\"byline\">Server error during login</p>\n"
+				errmsg = "A problem occured. Please try again."
 			} else {
 				suserid := strconv.Itoa(userid)
 				c := http.Cookie{
@@ -646,19 +657,16 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		if errMarkup != "" {
-			fmt.Fprintf(w, errMarkup)
+		fmt.Fprintf(w, "<form action=\"/login/\" method=\"post\">\n")
+		if errmsg != "" {
+			fmt.Fprintf(w, "<label class=\"error\">%s</label><br>\n", errmsg)
 		}
-
-		fmt.Fprintf(w, `
-<form action="/login/" method="post">
-    <label class="byline">username</label>
-    <input name="username" type="text" size="20"><br>
-    <label class="byline">password</label>
-    <input name="password" type="password" size="20"><br>
-    <button class="submit">login</button>
-</form>
-`)
+		fmt.Fprintf(w, "<label class=\"byline\">username</label>\n")
+		fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\"><br>\n")
+		fmt.Fprintf(w, "<label class=\"byline\">password</label>\n")
+		fmt.Fprintf(w, "<input name=\"password\" type=\"password\" size=\"20\"><br>\n")
+		fmt.Fprintf(w, "<button class=\"submit\">login</button>\n")
+		fmt.Fprintf(w, "</form>\n")
 
 		printPageFoot(w)
 	}
@@ -678,44 +686,41 @@ func printByline(w io.Writer, loginUsername string, noteid int64, noteUsername s
 }
 
 func printPageHead(w io.Writer) {
-	fmt.Fprintf(w, `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Website</title>
-<link rel="stylesheet" type="text/css" href="/static/style.css">
-</head>
-<body>
-`)
+	fmt.Fprintf(w, "<!DOCTYPE html>\n")
+	fmt.Fprintf(w, "<html>\n")
+	fmt.Fprintf(w, "<head>\n")
+	fmt.Fprintf(w, "<meta charset=\"utf-8\">\n")
+	fmt.Fprintf(w, "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
+	fmt.Fprintf(w, "<title>Website</title>\n")
+	fmt.Fprintf(w, "<link rel=\"stylesheet\" type=\"text/css\" href=\"/static/style.css\">\n")
+	fmt.Fprintf(w, "</head>\n")
+	fmt.Fprintf(w, "<body>\n")
 }
 
 func printPageFoot(w io.Writer) {
-	fmt.Fprintf(w, `</body>
-</html>
-`)
+	fmt.Fprintf(w, "</body>\n")
+	fmt.Fprintf(w, "</html>\n")
 }
 
 func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	_, username := getLoginUser(r, db)
+	loginUserid, loginUsername := getLoginUser(r, db)
 
 	fmt.Fprintf(w, "<nav>\n")
 
 	fmt.Fprintf(w, "<div>\n")
 	fmt.Fprintf(w, "<h1><a href=\"/\">Group Notes</a></h1>\n")
 	fmt.Fprintf(w, "<a href=\"/\">latest</a>\n")
-	if username != "" {
+	if loginUserid != -1 {
 		fmt.Fprintf(w, "<a href=\"/newnote/\">new note</a>\n")
 	}
 	fmt.Fprintf(w, "<p class=\"byline\">I reserve the right to be biased, it makes life more interesting.</p>\n")
 	fmt.Fprintf(w, "</div>\n")
 
 	fmt.Fprintf(w, "<div>\n")
-	if username != "" {
-		fmt.Fprintf(w, "<span>%s</span>\n", username)
+	fmt.Fprintf(w, "<span>%s</span>\n", loginUsername)
+	if loginUserid != -1 {
 		fmt.Fprintf(w, "<a href=\"/logout\">logout</a>\n")
 	} else {
-		fmt.Fprintf(w, "<span></span>\n")
 		fmt.Fprintf(w, "<a href=\"/login\">login</a>\n")
 	}
 	fmt.Fprintf(w, "</div>\n")
@@ -734,10 +739,13 @@ func getLoginUser(r *http.Request, db *sql.DB) (int64, string) {
 		return -1, ""
 	}
 
-	username := ""
+	var username string
 	s := "SELECT username FROM user WHERE user_id = ?"
 	row := db.QueryRow(s, userid)
-	row.Scan(&username)
+	err = row.Scan(&username)
+	if err == sql.ErrNoRows {
+		return -1, ""
+	}
 	return userid, username
 }
 
