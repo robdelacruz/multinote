@@ -14,7 +14,7 @@ CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password
 
 INSERT INTO user (user_id, username, password) VALUES (1, 'admin', '');
 INSERT INTO user (user_id, username, password) VALUES (2, 'guest', '');
-INSERT INTO user (username, password) VALUES ('robdelacruz', '123');
+INSERT INTO user (username, password) VALUES ('robdelacruz', '$2a$10$QBKdo66QfkyqNczexwGFwul3731pQ970B96Bn1hgmvXLBu.LaJhFK'); -- password is '123'
 INSERT INTO user (username, password) VALUES ('lky', '');
 
 INSERT INTO note (title, body, createdt, user_id) VALUES ('Aimee Teagarden', 'All about Aimee Teagarden Hallmark show', '2019-12-01T14:00:00+08:00', 3);

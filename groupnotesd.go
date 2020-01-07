@@ -12,6 +12,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/russross/blackfriday.v2"
 )
 
@@ -211,7 +212,7 @@ func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			s := "INSERT INTO note (title, body, createdt, user_id) VALUES (?, ?, ?, ?);"
 			_, err := sqlstmt(db, s).Exec(title, body, createdt, loginUserid)
 			if err != nil {
-				fmt.Printf("DB error creating note: %s\n", err)
+				log.Printf("DB error creating note: %s\n", err)
 				errmsg = "A problem occured. Please try again."
 			}
 
@@ -290,7 +291,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			s := "UPDATE note SET title = ?, body = ?, createdt = ? WHERE note_id = ?"
 			_, err = sqlstmt(db, s).Exec(title, body, createdt, noteid)
 			if err != nil {
-				fmt.Printf("DB error updating noteid %d: %s\n", noteid, err)
+				log.Printf("DB error updating noteid %d: %s\n", noteid, err)
 				errmsg = "A problem occured. Please try again."
 			}
 
@@ -360,25 +361,25 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if r.Method == "POST" {
 			// todo: use transaction or trigger instead?
 
-			// Delete note replies
-			s = "DELETE FROM notereply WHERE note_id = ?"
-			_, err = sqlstmt(db, s).Exec(noteid)
-			if err != nil {
-				fmt.Printf("DB error deleting notereplies of noteid %d: %s\n", noteid, err)
-				errmsg = "A problem occured. Please try again."
-			}
+			for {
+				// Delete note replies
+				s = "DELETE FROM notereply WHERE note_id = ?"
+				_, err = sqlstmt(db, s).Exec(noteid)
+				if err != nil {
+					log.Printf("DB error deleting notereplies of noteid %d: %s\n", noteid, err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
 
-			// Delete note
-			if err == nil {
+				// Delete note
 				s := "DELETE FROM note WHERE note_id = ?"
 				_, err = sqlstmt(db, s).Exec(noteid)
 				if err != nil {
-					fmt.Printf("DB error deleting noteid %d: %s\n", noteid, err)
+					log.Printf("DB error deleting noteid %d: %s\n", noteid, err)
 					errmsg = "A problem occured. Please try again."
+					break
 				}
-			}
 
-			if errmsg == "" {
 				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
 			}
@@ -431,7 +432,7 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			s := "INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (?, ?, ?, ?)"
 			_, err := sqlstmt(db, s).Exec(noteid, replybody, createdt, loginUserid)
 			if err != nil {
-				fmt.Printf("DB error creating reply: %s\n", err)
+				log.Printf("DB error creating reply: %s\n", err)
 				errmsg = "A problem occured. Please try again."
 			}
 
@@ -507,7 +508,7 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			s := "UPDATE notereply SET replybody = ? WHERE notereply_id = ?"
 			_, err = sqlstmt(db, s).Exec(replybody, replyid)
 			if err != nil {
-				fmt.Printf("DB error updating replyid %d: %s\n", replyid, err)
+				log.Printf("DB error updating replyid %d: %s\n", replyid, err)
 				errmsg = "A problem occured. Please try again."
 			}
 
@@ -580,7 +581,7 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			s := "DELETE FROM notereply WHERE notereply_id = ?"
 			_, err = sqlstmt(db, s).Exec(replyid)
 			if err != nil {
-				fmt.Printf("DB error deleting replyid %d: %s\n", replyid, err)
+				log.Printf("DB error deleting replyid %d: %s\n", replyid, err)
 				errmsg = "A problem occured. Please try again."
 			}
 			if errmsg == "" {
@@ -620,6 +621,25 @@ func logoutHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+func hashPassword(pwd string) string {
+	hashedpwd, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return string(hashedpwd)
+}
+
+func isCorrectPassword(inputPassword, hashedpwd string) bool {
+	if hashedpwd == "" && inputPassword == "" {
+		return true
+	}
+	err := bcrypt.CompareHashAndPassword([]byte(hashedpwd), []byte(inputPassword))
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var errmsg string
@@ -628,16 +648,27 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			username := r.FormValue("username")
 			password := r.FormValue("password")
 
-			s := "SELECT user_id FROM user WHERE username = ? AND password = ?"
+			s := "SELECT user_id, password FROM user WHERE username = ?"
 			row := db.QueryRow(s, username, password)
 
 			var userid int
-			err := row.Scan(&userid)
-			if err == sql.ErrNoRows {
-				errmsg = "Incorrect username or password"
-			} else if err != nil {
-				errmsg = "A problem occured. Please try again."
-			} else {
+			var hashedpwd string
+			err := row.Scan(&userid, &hashedpwd)
+
+			for {
+				if err == sql.ErrNoRows {
+					errmsg = "Incorrect username or password"
+					break
+				}
+				if err != nil {
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+				if !isCorrectPassword(password, hashedpwd) {
+					errmsg = "Incorrect username or password"
+					break
+				}
+
 				suserid := strconv.Itoa(userid)
 				c := http.Cookie{
 					Name:  "userid",
