@@ -170,7 +170,7 @@ ORDER BY createdt DESC;`
 
 			fmt.Fprintf(w, "<p class=\"byline\">\n")
 			fmt.Fprintf(w, "%d. %s wrote on %s:", i, replyUser.Username, createdt)
-			if replyUser.Userid == login.Userid {
+			if replyUser.Userid == login.Userid || login.Userid == ADMIN_ID {
 				fmt.Fprintf(w, "<span class=\"actions\">\n")
 				fmt.Fprintf(w, "<a href=\"/editreply/?replyid=%d\">Edit</a>\n", replyid)
 				fmt.Fprintf(w, "<a href=\"/delreply/?replyid=%d\">Delete</a>\n", replyid)
@@ -280,8 +280,8 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		// Allow only creators (todo: also admin) to edit the note.
-		if noteUserid != login.Userid {
+		// Allow only creators or admin to edit the note.
+		if noteUserid != login.Userid && login.Userid != ADMIN_ID {
 			log.Printf("User '%s' doesn't have access to note %d\n", login.Username, noteid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -359,8 +359,8 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		// Allow only creators (todo: also admin) to delete the note.
-		if noteUserid != login.Userid {
+		// Allow only creators or admin to delete the note.
+		if noteUserid != login.Userid && login.Userid != ADMIN_ID {
 			log.Printf("User '%s' doesn't have access to note %d\n", login.Username, noteid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -502,8 +502,8 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			log.Fatal(err)
 		}
 
-		// Only reply creator (todo: also admin) can edit the reply
-		if login.Userid != replyUserid {
+		// Allow only creators or admin to edit the reply.
+		if login.Userid != replyUserid && login.Userid != ADMIN_ID {
 			log.Printf("User '%s' doesn't have access to replyid %d\n", login.Username, replyid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -578,8 +578,8 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			log.Fatal(err)
 		}
 
-		// Only reply creator (todo: also admin) can delete the reply
-		if login.Userid != replyUserid {
+		// Allow only creators or admin to delete the reply.
+		if login.Userid != replyUserid && login.Userid != ADMIN_ID {
 			log.Printf("User '%s' doesn't have access to replyid %d\n", login.Username, replyid)
 			http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
 			return
@@ -715,7 +715,7 @@ func printByline(w io.Writer, login User, noteid int64, noteUser User, tcreatedt
 	createdt := tcreatedt.Format("2 Jan 2006")
 	fmt.Fprintf(w, "<p class=\"byline\">\n")
 	fmt.Fprintf(w, "posted by %s on <time>%s</time> (%d replies)", noteUser.Username, createdt, nreplies)
-	if noteUser.Userid == login.Userid {
+	if noteUser.Userid == login.Userid || login.Userid == ADMIN_ID {
 		fmt.Fprintf(w, "<span class=\"actions\">\n")
 		fmt.Fprintf(w, "<a href=\"/editnote/?noteid=%d\">Edit</a>\n", noteid)
 		fmt.Fprintf(w, "<a href=\"/delnote/?noteid=%d\">Delete</a>\n", noteid)
