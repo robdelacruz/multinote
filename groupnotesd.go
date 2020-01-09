@@ -18,6 +18,11 @@ import (
 
 const ADMIN_ID = 1
 
+type User struct {
+	Userid   int64
+	Username string
+}
+
 func main() {
 	port := "8000"
 
@@ -54,7 +59,7 @@ func parseNoteid(url string) int64 {
 
 func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, loginUsername := getLoginUser(r, db)
+		login := getLoginUser(r, db)
 
 		w.Header().Set("Content-Type", "text/html")
 
@@ -62,7 +67,7 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<ul class=\"links\">\n")
-		s := `SELECT note_id, title, body, createdt, username, 
+		s := `SELECT note_id, title, body, createdt, user.user_id, username, 
 (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies, 
 (SELECT COALESCE(MAX(createdt), '') FROM notereply where note.note_id = notereply.note_id) AS maxreplydt 
 FROM note 
@@ -75,15 +80,16 @@ ORDER BY MAX(createdt, maxreplydt) DESC;`
 		}
 		for rows.Next() {
 			var noteid int64
-			var title, body, createdt, noteUsername, maxreplydt string
+			var title, body, createdt, maxreplydt string
+			var noteUser User
 			var numreplies int
-			rows.Scan(&noteid, &title, &body, &createdt, &noteUsername, &numreplies, &maxreplydt)
+			rows.Scan(&noteid, &title, &body, &createdt, &noteUser.Userid, &noteUser.Username, &numreplies, &maxreplydt)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
 			fmt.Fprintf(w, "<li>\n")
 			fmt.Fprintf(w, "<a class=\"note-title\" href=\"/note/%d\">%s</a>\n", noteid, title)
 
-			printByline(w, loginUsername, noteid, noteUsername, tcreatedt, numreplies)
+			printByline(w, login, noteid, noteUser, tcreatedt, numreplies)
 			fmt.Fprintf(w, "</li>\n")
 		}
 		fmt.Fprintf(w, "</ul>\n")
@@ -105,18 +111,19 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		loginUserid, loginUsername := getLoginUser(r, db)
+		login := getLoginUser(r, db)
 
-		s := `SELECT title, body, createdt, username, (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies 
+		s := `SELECT title, body, createdt, user.user_id, username, (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies 
 FROM note
 LEFT OUTER JOIN user ON note.user_id = user.user_id
 WHERE note_id = ?
 ORDER BY createdt DESC;`
 		row := db.QueryRow(s, noteid)
 
-		var title, body, createdt, noteUsername string
+		var title, body, createdt string
+		var noteUser User
 		var numreplies int
-		err := row.Scan(&title, &body, &createdt, &noteUsername, &numreplies)
+		err := row.Scan(&title, &body, &createdt, &noteUser.Userid, &noteUser.Username, &numreplies)
 		if err == sql.ErrNoRows {
 			// note doesn't exist so redirect to notes list page.
 			log.Printf("display note: noteid %d doesn't exist\n", noteid)
@@ -134,7 +141,7 @@ ORDER BY createdt DESC;`
 		if err != nil {
 			tcreatedt = time.Now()
 		}
-		printByline(w, loginUsername, noteid, noteUsername, tcreatedt, numreplies)
+		printByline(w, login, noteid, noteUser, tcreatedt, numreplies)
 
 		bodyMarkup := parseMarkdown(body)
 		fmt.Fprintf(w, bodyMarkup)
@@ -143,7 +150,7 @@ ORDER BY createdt DESC;`
 		fmt.Fprintf(w, "<hr>\n")
 		fmt.Fprintf(w, "<p>Replies:</p>\n")
 
-		s = "SELECT notereply_id, replybody, createdt, username FROM notereply LEFT OUTER JOIN user ON notereply.user_id = user.user_id WHERE note_id = ? ORDER BY notereply_id"
+		s = "SELECT notereply_id, replybody, createdt, user.user_id, username FROM notereply LEFT OUTER JOIN user ON notereply.user_id = user.user_id WHERE note_id = ? ORDER BY notereply_id"
 		rows, err := db.Query(s, noteid)
 		if err != nil {
 			fmt.Fprintf(w, "<p class=\"byline\">Error loading replies</p>\n")
@@ -155,14 +162,15 @@ ORDER BY createdt DESC;`
 		i := 1
 		for rows.Next() {
 			var replyid int64
-			var replybody, createdt, replyUsername string
-			rows.Scan(&replyid, &replybody, &createdt, &replyUsername)
+			var replybody, createdt string
+			var replyUser User
+			rows.Scan(&replyid, &replybody, &createdt, &replyUser.Userid, &replyUser.Username)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 			createdt = tcreatedt.Format("2 Jan 2006")
 
 			fmt.Fprintf(w, "<p class=\"byline\">\n")
-			fmt.Fprintf(w, "%d. %s wrote on %s:", i, replyUsername, createdt)
-			if replyUsername == loginUsername {
+			fmt.Fprintf(w, "%d. %s wrote on %s:", i, replyUser.Username, createdt)
+			if replyUser.Userid == login.Userid {
 				fmt.Fprintf(w, "<span class=\"actions\">\n")
 				fmt.Fprintf(w, "<a href=\"/editreply/?replyid=%d\">Edit</a>\n", replyid)
 				fmt.Fprintf(w, "<a href=\"/delreply/?replyid=%d\">Delete</a>\n", replyid)
@@ -176,11 +184,11 @@ ORDER BY createdt DESC;`
 		fmt.Fprintf(w, "</div>\n")
 
 		// New Reply form
-		if loginUserid == -1 {
+		if login.Userid == -1 {
 			fmt.Fprintf(w, "<label class=\"byline\"><a href=\"/login/\">Log in</a> to post a reply.</label>")
 		} else {
 			fmt.Fprintf(w, "<form action=\"/newreply/?noteid=%d\" method=\"post\">\n", noteid)
-			fmt.Fprintf(w, "<label class=\"byline\">reply as %s:</label>\n", loginUsername)
+			fmt.Fprintf(w, "<label class=\"byline\">reply as %s:</label>\n", login.Username)
 			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\"></textarea><br>\n")
 			fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
 			fmt.Fprintf(w, "</form>\n")
@@ -196,8 +204,8 @@ func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var errmsg string
 		var title, body string
 
-		loginUserid, _ := getLoginUser(r, db)
-		if loginUserid == -1 {
+		login := getLoginUser(r, db)
+		if login.Userid == -1 {
 			log.Printf("new note: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -210,7 +218,7 @@ func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			createdt := time.Now().Format(time.RFC3339)
 
 			s := "INSERT INTO note (title, body, createdt, user_id) VALUES (?, ?, ?, ?);"
-			_, err := sqlstmt(db, s).Exec(title, body, createdt, loginUserid)
+			_, err := sqlstmt(db, s).Exec(title, body, createdt, login.Userid)
 			if err != nil {
 				log.Printf("DB error creating note: %s\n", err)
 				errmsg = "A problem occured. Please try again."
@@ -252,8 +260,8 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		loginUserid, loginUsername := getLoginUser(r, db)
-		if loginUserid == -1 {
+		login := getLoginUser(r, db)
+		if login.Userid == -1 {
 			log.Printf("edit note: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -273,8 +281,8 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		// Allow only creators (todo: also admin) to edit the note.
-		if noteUserid != loginUserid {
-			log.Printf("User '%s' doesn't have access to note %d\n", loginUsername, noteid)
+		if noteUserid != login.Userid {
+			log.Printf("User '%s' doesn't have access to note %d\n", login.Username, noteid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -331,8 +339,8 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		loginUserid, loginUsername := getLoginUser(r, db)
-		if loginUserid == -1 {
+		login := getLoginUser(r, db)
+		if login.Userid == -1 {
 			log.Printf("del note: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -352,8 +360,8 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		// Allow only creators (todo: also admin) to delete the note.
-		if noteUserid != loginUserid {
-			log.Printf("User '%s' doesn't have access to note %d\n", loginUsername, noteid)
+		if noteUserid != login.Userid {
+			log.Printf("User '%s' doesn't have access to note %d\n", login.Username, noteid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -417,8 +425,8 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		loginUserid, _ := getLoginUser(r, db)
-		if loginUserid == -1 {
+		login := getLoginUser(r, db)
+		if login.Userid == -1 {
 			log.Printf("new reply: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -430,7 +438,7 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			createdt := time.Now().Format(time.RFC3339)
 
 			s := "INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (?, ?, ?, ?)"
-			_, err := sqlstmt(db, s).Exec(noteid, replybody, createdt, loginUserid)
+			_, err := sqlstmt(db, s).Exec(noteid, replybody, createdt, login.Userid)
 			if err != nil {
 				log.Printf("DB error creating reply: %s\n", err)
 				errmsg = "A problem occured. Please try again."
@@ -472,8 +480,8 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		loginUserid, loginUsername := getLoginUser(r, db)
-		if loginUserid == -1 {
+		login := getLoginUser(r, db)
+		if login.Userid == -1 {
 			log.Printf("edit reply: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -495,8 +503,8 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		// Only reply creator (todo: also admin) can edit the reply
-		if loginUserid != replyUserid {
-			log.Printf("User '%s' doesn't have access to replyid %d\n", loginUsername, replyid)
+		if login.Userid != replyUserid {
+			log.Printf("User '%s' doesn't have access to replyid %d\n", login.Username, replyid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -548,8 +556,8 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		loginUserid, loginUsername := getLoginUser(r, db)
-		if loginUserid == -1 {
+		login := getLoginUser(r, db)
+		if login.Userid == -1 {
 			log.Printf("del reply: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -571,8 +579,8 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		// Only reply creator (todo: also admin) can delete the reply
-		if loginUserid != replyUserid {
-			log.Printf("User '%s' doesn't have access to replyid %d\n", loginUsername, replyid)
+		if login.Userid != replyUserid {
+			log.Printf("User '%s' doesn't have access to replyid %d\n", login.Username, replyid)
 			http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
 			return
 		}
@@ -703,11 +711,11 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func printByline(w io.Writer, loginUsername string, noteid int64, noteUsername string, tcreatedt time.Time, nreplies int) {
+func printByline(w io.Writer, login User, noteid int64, noteUser User, tcreatedt time.Time, nreplies int) {
 	createdt := tcreatedt.Format("2 Jan 2006")
 	fmt.Fprintf(w, "<p class=\"byline\">\n")
-	fmt.Fprintf(w, "posted by %s on <time>%s</time> (%d replies)", noteUsername, createdt, nreplies)
-	if noteUsername == loginUsername {
+	fmt.Fprintf(w, "posted by %s on <time>%s</time> (%d replies)", noteUser.Username, createdt, nreplies)
+	if noteUser.Userid == login.Userid {
 		fmt.Fprintf(w, "<span class=\"actions\">\n")
 		fmt.Fprintf(w, "<a href=\"/editnote/?noteid=%d\">Edit</a>\n", noteid)
 		fmt.Fprintf(w, "<a href=\"/delnote/?noteid=%d\">Delete</a>\n", noteid)
@@ -734,22 +742,22 @@ func printPageFoot(w io.Writer) {
 }
 
 func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	loginUserid, loginUsername := getLoginUser(r, db)
+	login := getLoginUser(r, db)
 
 	fmt.Fprintf(w, "<nav>\n")
 
 	fmt.Fprintf(w, "<div>\n")
 	fmt.Fprintf(w, "<h1><a href=\"/\">Group Notes</a></h1>\n")
 	fmt.Fprintf(w, "<a href=\"/\">latest</a>\n")
-	if loginUserid != -1 {
+	if login.Userid != -1 {
 		fmt.Fprintf(w, "<a href=\"/newnote/\">new note</a>\n")
 	}
 	fmt.Fprintf(w, "<p class=\"byline\">I reserve the right to be biased, it makes life more interesting.</p>\n")
 	fmt.Fprintf(w, "</div>\n")
 
 	fmt.Fprintf(w, "<div>\n")
-	fmt.Fprintf(w, "<span>%s</span>\n", loginUsername)
-	if loginUserid != -1 {
+	fmt.Fprintf(w, "<span>%s</span>\n", login.Username)
+	if login.Userid != -1 {
 		fmt.Fprintf(w, "<a href=\"/logout\">logout</a>\n")
 	} else {
 		fmt.Fprintf(w, "<a href=\"/login\">login</a>\n")
@@ -759,15 +767,15 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "</nav>\n")
 }
 
-func getLoginUser(r *http.Request, db *sql.DB) (int64, string) {
+func getLoginUser(r *http.Request, db *sql.DB) User {
 	c, err := r.Cookie("userid")
 	if err != nil {
-		return -1, ""
+		return User{-1, ""}
 	}
 
 	userid := idtoi(c.Value)
 	if userid == -1 {
-		return -1, ""
+		return User{-1, ""}
 	}
 
 	var username string
@@ -775,9 +783,9 @@ func getLoginUser(r *http.Request, db *sql.DB) (int64, string) {
 	row := db.QueryRow(s, userid)
 	err = row.Scan(&username)
 	if err == sql.ErrNoRows {
-		return -1, ""
+		return User{-1, ""}
 	}
-	return userid, username
+	return User{Userid: userid, Username: username}
 }
 
 func parseMarkdown(s string) string {
