@@ -42,6 +42,8 @@ func main() {
 	http.HandleFunc("/delreply/", delReplyHandler(db))
 	http.HandleFunc("/login/", loginHandler(db))
 	http.HandleFunc("/logout/", logoutHandler(db))
+	http.HandleFunc("/newuser/", newUserHandler(db))
+	http.HandleFunc("/edituser/", editUserHandler(db))
 	fmt.Printf("Listening on %s...\n", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	log.Fatal(err)
@@ -711,6 +713,167 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+func newUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+		var username, password, password2 string
+
+		login := getLoginUser(r, db)
+		if login.Userid != ADMIN_ID {
+			log.Printf("new user: admin not logged in\n")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		if r.Method == "POST" {
+			username = r.FormValue("username")
+			password = r.FormValue("password")
+			password2 = r.FormValue("password2")
+
+			for {
+				if password != password2 {
+					errmsg = "re-entered password doesn't match"
+					password = ""
+					password2 = ""
+					break
+				}
+				if isUsernameExists(db, username) {
+					errmsg = fmt.Sprintf("username '%s' already exists", username)
+					break
+				}
+
+				hashedPassword := hashPassword(password)
+				s := "INSERT INTO user (username, password) VALUES (?, ?);"
+				_, err := sqlstmt(db, s).Exec(username, hashedPassword)
+				if err != nil {
+					log.Printf("DB error creating user: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<form action=\"/newuser/\" method=\"post\">\n")
+		if errmsg != "" {
+			fmt.Fprintf(w, "<label class=\"error\">%s</label><br>\n", errmsg)
+		}
+		fmt.Fprintf(w, "<label class=\"byline\">username</label>\n")
+		fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\" value=\"%s\"><br>\n", username)
+		fmt.Fprintf(w, "<label class=\"byline\">password</label>\n")
+		fmt.Fprintf(w, "<input name=\"password\" type=\"password\" size=\"30\" value=\"%s\"><br>\n", password)
+		fmt.Fprintf(w, "<label class=\"byline\">re-enter password</label>\n")
+		fmt.Fprintf(w, "<input name=\"password2\" type=\"password\" size=\"30\" value=\"%s\"><br>\n", password2)
+		fmt.Fprintf(w, "<button class=\"submit\">add user</button>\n")
+		fmt.Fprintf(w, "</form>\n")
+
+		printPageFoot(w)
+	}
+}
+
+func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+		var username, password, password2 string
+
+		setpwd := r.FormValue("setpwd") // ?setpwd=1 to prompt for new password
+		userid := idtoi(r.FormValue("userid"))
+		if userid == -1 {
+			log.Printf("edit user: no userid\n")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		login := getLoginUser(r, db)
+		if login.Userid != ADMIN_ID {
+			log.Printf("edit user: admin not logged in\n")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		s := "SELECT username FROM user WHERE user_id = ?"
+		row := db.QueryRow(s, userid)
+		err := row.Scan(&username)
+		if err == sql.ErrNoRows {
+			// user doesn't exist
+			log.Printf("userid %d doesn't exist\n", userid)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		if r.Method == "POST" {
+			oldUsername := username
+			username = r.FormValue("username")
+
+			for {
+				// If username was changed,
+				// make sure the new username hasn't been taken yet.
+				if username != oldUsername && isUsernameExists(db, username) {
+					errmsg = fmt.Sprintf("username '%s' already exists", username)
+					break
+				}
+
+				var err error
+				if setpwd == "" {
+					s := "UPDATE user SET username = ? WHERE user_id = ?"
+					_, err = sqlstmt(db, s).Exec(username, userid)
+				} else {
+					// ?setpwd=1 to set new password
+					password = r.FormValue("password")
+					password2 = r.FormValue("password2")
+					if password != password2 {
+						errmsg = "re-entered password doesn't match"
+						password = ""
+						password2 = ""
+						break
+					}
+					hashedPassword := hashPassword(password)
+					s := "UPDATE user SET username = ?, password = ? WHERE user_id = ?"
+					_, err = sqlstmt(db, s).Exec(username, hashedPassword, userid)
+				}
+				if err != nil {
+					log.Printf("DB error updating user: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<form action=\"/edituser/?userid=%d&setpwd=%s\" method=\"post\">\n", userid, setpwd)
+		if errmsg != "" {
+			fmt.Fprintf(w, "<label class=\"error\">%s</label><br>\n", errmsg)
+		}
+		fmt.Fprintf(w, "<label class=\"byline\">username</label>\n")
+		fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\" value=\"%s\"><br>\n", username)
+
+		// ?setpwd=1 to set new password
+		if setpwd != "" {
+			fmt.Fprintf(w, "<label class=\"byline\">password</label>\n")
+			fmt.Fprintf(w, "<input name=\"password\" type=\"password\" size=\"30\" value=\"%s\"><br>\n", password)
+			fmt.Fprintf(w, "<label class=\"byline\">re-enter password</label>\n")
+			fmt.Fprintf(w, "<input name=\"password2\" type=\"password\" size=\"30\" value=\"%s\"><br>\n", password2)
+		}
+
+		fmt.Fprintf(w, "<button class=\"submit\">update user</button>\n")
+		fmt.Fprintf(w, "</form>\n")
+
+		printPageFoot(w)
+	}
+}
+
 func printByline(w io.Writer, login User, noteid int64, noteUser User, tcreatedt time.Time, nreplies int) {
 	createdt := tcreatedt.Format("2 Jan 2006")
 	fmt.Fprintf(w, "<p class=\"byline\">\n")
@@ -786,6 +949,20 @@ func getLoginUser(r *http.Request, db *sql.DB) User {
 		return User{-1, ""}
 	}
 	return User{Userid: userid, Username: username}
+}
+
+func isUsernameExists(db *sql.DB, username string) bool {
+	s := "SELECT user_id FROM user WHERE username = ?"
+	row := db.QueryRow(s, username)
+	var userid int64
+	err := row.Scan(&userid)
+	if err == sql.ErrNoRows {
+		return false
+	}
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func parseMarkdown(s string) string {
