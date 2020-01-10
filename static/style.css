@@ -115,3 +115,27 @@ form .submit {
     margin-top: 0.5em;
 }
 
+.menu h2 {
+    margin: 0;
+    font-size: 1.2em;
+}
+.menu p {
+    margin: 0.2em 0;
+}
+.menu ul {
+    list-style-type: none;
+    padding: 0;
+}
+.menu li {
+    padding-bottom: 0.2em;
+}
+.menu-item {
+    margin: 0;
+}
+.menu-item a {
+    display: inline-block;
+    color: #888;
+    margin-right: 0.2em;
+    font-size: 0.8em;
+}
+

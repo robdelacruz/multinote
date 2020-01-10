@@ -42,6 +42,7 @@ func main() {
 	http.HandleFunc("/delreply/", delReplyHandler(db))
 	http.HandleFunc("/login/", loginHandler(db))
 	http.HandleFunc("/logout/", logoutHandler(db))
+	http.HandleFunc("/admin/", adminHandler(db))
 	http.HandleFunc("/newuser/", newUserHandler(db))
 	http.HandleFunc("/edituser/", editUserHandler(db))
 	fmt.Printf("Listening on %s...\n", port)
@@ -709,6 +710,53 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">login</button>\n")
 		fmt.Fprintf(w, "</form>\n")
 
+		printPageFoot(w)
+	}
+}
+
+func adminHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+
+		login := getLoginUser(r, db)
+		if login.Userid != ADMIN_ID {
+			log.Printf("edit user: admin not logged in\n")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<section class=\"menu\">\n")
+		fmt.Fprintf(w, "<h2>Users</h2>\n")
+		fmt.Fprintf(w, "<ul>\n")
+		fmt.Fprintf(w, "<li><p class=\"menu-item\"><a href=\"/newuser/\">Create new user</a></p></li>\n")
+
+		s := "SELECT user_id, username FROM user ORDER BY username"
+		rows, err := db.Query(s)
+		for {
+			if err != nil {
+				errmsg = "A problem occured while loading users. Please try again."
+				fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
+				break
+			}
+
+			for rows.Next() {
+				var u User
+				rows.Scan(&u.Userid, &u.Username)
+				fmt.Fprintf(w, "<li>\n")
+				fmt.Fprintf(w, "<p class=\"menu-item\">%s\n", u.Username)
+				fmt.Fprintf(w, "<a href=\"/edituser?userid=%d\">Edit</a>\n", u.Userid)
+				fmt.Fprintf(w, "<a href=\"/edituser?userid=%d&setpwd=1\">Password</a>\n", u.Userid)
+				fmt.Fprintf(w, "</p>\n")
+				fmt.Fprintf(w, "</li>\n")
+			}
+			break
+		}
+
+		fmt.Fprintf(w, "</ul>\n")
 		printPageFoot(w)
 	}
 }
