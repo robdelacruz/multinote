@@ -83,4 +83,11 @@ header p {
     padding: 0;
 }
 
+.dotted {
+    border: dashed 1px;
+    color: #888;
+}
+.reply p {
+    margin-top: 0.2em;
+}
 
