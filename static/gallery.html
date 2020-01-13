@@ -69,22 +69,24 @@
 
 <hr class="dotted">
 <p>Replies:</p>
-<div class="reply">
+<div class="compact">
     <ul class="line-menu finetext">
         <li>1. robdelacruz</li>
         <li>Jan 7, 2020</li>
         <li><a href="#">Edit</a></li>
         <li><a href="#">Delete</a></li>
     </ul>
+    <h1>My take on this article</h1>
     <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p> 
     <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p> 
 </div>
 
-<div class="reply">
+<div class="compact">
     <ul class="line-menu finetext">
         <li>2. lky</li>
         <li>Jan 2, 2020</li>
     </ul>
+    <h1>My &lt;h2&gt; take on this article</h1>
     <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p> 
     <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p> 
 </div>
@@ -130,6 +132,29 @@
         <p class="finetext">Make an offline backup.</p>
     </li>
 </ul>
+
+<p class="defn">form:</p>
+<form class="simpleform" action="." method="post">
+    <h1 class="heading">New Note</h1>
+    <ul class="line-menu finetext">
+        <li>post as robdelacruz</li>
+        <li>Jan 2, 2020</li>
+    </ul>
+    <div class="control">
+        <p class="error">An error occured.</p>
+    </div>
+    <div class="control">
+        <label class="byline">title</label>
+        <input name="title" type="text" size="50" value="">
+    </div>
+    <div class="control">
+        <label class="byline">note</label>
+        <textarea name="body" rows="25" cols="80"></textarea><br>
+    </div>
+    <div class="control">
+        <button class="submit">add note</button>
+    </div>
+</form>
 
 </section>
 <script>

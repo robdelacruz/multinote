@@ -49,7 +49,6 @@ header p {
 }
 
 .line-menu {
-    display: inline;
     list-style-type: none;
     margin: 0;
     padding: 0;
@@ -87,7 +86,26 @@ header p {
     border: dashed 1px;
     color: #888;
 }
-.reply p {
-    margin-top: 0.2em;
+.compact * {
+    margin: 0.2em 0 0.5em;
 }
+.compact h1, .compact h2, .compact h3, .compact h4, .compact h5 {
+    font-size: 1em;
+}
+
+.simpleform .error {
+    color: #f00;
+}
+.simpleform .control {
+    margin: 0.5em 0;
+    padding: 0;
+}
+.simpleform .control label {
+    display: block;
+}
+.simpleform input:focus, .simpleform textarea:focus, .simpleform button:focus {
+    border: 0.3em solid #addb67;
+}
+
+
 
