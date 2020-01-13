@@ -1,0 +1,141 @@
+body {
+    margin: 0 2em;
+    padding: 0;
+    font-family: "Helvetica", "Arial", sans-serif;
+    font-size: 16px;
+    max-width: 50em;
+    background-color: #011627;
+    color: #addb67; /* green text */
+    color: #d6deeb; /* white greyish text */
+}
+.byline {
+    margin: 0;
+    font-size: 0.8em;
+    color: #888;
+}
+.byline a {
+    color: #888;
+}
+.error {
+    background-color: #F00;
+}
+.delete input, .delete textarea {
+    background-color: #aaa;
+}
+.delete button, .delete h2 {
+    color: #f00;
+}
+.actions {
+    margin: 0 0.2em;
+}
+a {
+    color: #addb67; /* green links */
+    color: #ecc48d; /* bright amber links */
+}
+/* amber monochrome */
+/*body, body a, .byline {
+    background-color: #000;
+    color: rgba(185,128,0,1.0);
+}*/
+code, pre {
+    background-color: #2d2c5d;
+    color: #d6deeb;
+}
+footer {
+    margin: 5em 0;
+    border-top: 1px solid #ddd;
+    font-style: italic;
+    font-size: smaller;
+    color: #888;
+}
+.permalink {
+    margin-top: 2em;
+    font-style: italic;
+    font-size: smaller;
+    color: #888;
+}
+nav {
+    display: flex;
+    justify-content: space-between;
+    margin: 1em 0;
+    padding-bottom: 0.5em;
+    border-bottom: 1px solid #ddd;
+}
+nav a {
+    margin-right: 0.5em;
+    font-size: 1em;
+}
+nav h1 {
+    display: inline;
+    font-size: 1em;
+}
+nav .byline {
+    margin-top: 0.4em;
+}
+article h1 {
+    margin: 0;
+    font-size: 1.2em;
+}
+.note-title {
+    text-decoration: none;
+    color: #addb67; /* green */
+}
+.links {
+    list-style-type: none;
+    padding: 0;
+}
+.links li {
+    padding-bottom: 1em;
+}
+.pager-links {
+    margin: 0;
+    font-size: 0.8em;
+    color: #888;
+}
+.pager-links a {
+    color: #888;
+}
+.replies {
+    margin-top: 2em;
+}
+.replies p {
+    margin-top: 0;
+}
+.replies hr {
+    border: dashed 1px;
+    color: #888;
+}
+form label {
+    display: block;
+}
+form input, form textarea {
+    margin-bottom: 0.5em;
+}
+form .submit {
+    margin-top: 0.5em;
+}
+
+.menu h2 {
+    margin: 0;
+    font-size: 1.2em;
+}
+.menu p {
+    margin: 0.2em 0;
+}
+.menu ul {
+    list-style-type: none;
+    padding: 0;
+}
+.menu li {
+    padding-bottom: 0.2em;
+}
+.menu-item {
+    margin: 0;
+}
+.menu-item a {
+    display: inline-block;
+    color: #888;
+    margin-right: 0.2em;
+    font-size: 0.8em;
+}
+

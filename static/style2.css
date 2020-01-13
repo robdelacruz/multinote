@@ -106,6 +106,9 @@ a {
 .simpleform input:focus, .simpleform textarea:focus, .simpleform button:focus {
     border: 0.3em solid #addb67;
 }
+.simpleform .control button {
+    margin-right: 0.5em;
+}
 
 
 
