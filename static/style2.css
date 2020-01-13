@@ -18,10 +18,10 @@ a {
     font-style: italic;
     font-size: smaller;
 }
-header {
+.masthead {
     border-bottom: 1px solid #ddd;
 }
-header p {
+.masthead p {
     margin: 0.5em 0;
 }
 .navbar {
