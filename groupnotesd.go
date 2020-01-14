@@ -34,7 +34,7 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.HandleFunc("/", notesHandler(db))
 	http.HandleFunc("/note/", noteHandler(db))
-	http.HandleFunc("/newnote/", newNoteHandler(db))
+	http.HandleFunc("/createnote/", createNoteHandler(db))
 	http.HandleFunc("/editnote/", editNoteHandler(db))
 	http.HandleFunc("/delnote/", delNoteHandler(db))
 	http.HandleFunc("/newreply/", newReplyHandler(db))
@@ -42,7 +42,8 @@ func main() {
 	http.HandleFunc("/delreply/", delReplyHandler(db))
 	http.HandleFunc("/login/", loginHandler(db))
 	http.HandleFunc("/logout/", logoutHandler(db))
-	http.HandleFunc("/admin/", adminHandler(db))
+	http.HandleFunc("/adminsetup/", adminsetupHandler(db))
+	http.HandleFunc("/usersettings/", usersettingsHandler(db))
 	http.HandleFunc("/newuser/", newUserHandler(db))
 	http.HandleFunc("/edituser/", editUserHandler(db))
 	fmt.Printf("Listening on %s...\n", port)
@@ -204,14 +205,14 @@ ORDER BY createdt DESC;`
 	}
 }
 
-func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var errmsg string
 		var title, body string
 
 		login := getLoginUser(r, db)
 		if login.Userid == -1 {
-			log.Printf("new note: no user logged in\n")
+			log.Printf("create note: no user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -239,7 +240,8 @@ func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/newnote/\" method=\"post\">\n")
+		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/createnote/\" method=\"post\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading\">Create Note</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
@@ -257,7 +259,7 @@ func newNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<button class=\"submit\">add note</button>\n")
+		fmt.Fprintf(w, "<button class=\"submit\">create note</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
 
@@ -330,6 +332,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/editnote/?noteid=%d\" method=\"post\">\n", noteid)
+		fmt.Fprintf(w, "<h1 class=\"heading\">Edit Note</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
@@ -574,13 +577,13 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/editreply/?replyid=%d\" method=\"post\">\n", replyid)
+		fmt.Fprintf(w, "<h1 class=\"heading\">Edit Reply</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
 			fmt.Fprintf(w, "</div>\n")
 		}
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>edit reply:</label>\n")
 		fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\">%s</textarea>\n", replybody)
 		fmt.Fprintf(w, "</div>\n")
 
@@ -661,6 +664,9 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\" readonly>%s</textarea>\n", replybody)
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<button class=\"submit warning\">delete reply</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
@@ -751,6 +757,7 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/login/\" method=\"post\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading\">Log In</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
@@ -775,13 +782,13 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func adminHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+func adminsetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var errmsg string
 
 		login := getLoginUser(r, db)
 		if login.Userid != ADMIN_ID {
-			log.Printf("edit user: admin not logged in\n")
+			log.Printf("adminsetup: admin not logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -790,7 +797,7 @@ func adminHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<h2 class=\"heading\">Users</h2>\n")
+		fmt.Fprintf(w, "<h2 class=\"heading doc-title\">Users</h2>\n")
 		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
 
 		fmt.Fprintf(w, "<li>\n")
@@ -827,6 +834,37 @@ func adminHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			}
 			break
 		}
+
+		fmt.Fprintf(w, "</ul>\n")
+		printPageFoot(w)
+	}
+}
+
+func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		login := getLoginUser(r, db)
+		if login.Userid == -1 {
+			log.Printf("usersettings: no user logged in\n")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<h2 class=\"heading doc-title\">User</h2>\n")
+		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
+
+		fmt.Fprintf(w, "<li>\n")
+		fmt.Fprintf(w, "<p>%s</p>\n", login.Username)
+
+		fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
+		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">rename</a>\n", login.Userid)
+		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">set password</a>\n", login.Userid)
+		fmt.Fprintf(w, "  <li><a href=\"/deactivateuser?userid=%d&setpwd=1\">deactivate</a>\n", login.Userid)
+		fmt.Fprintf(w, "</ul>\n")
+		fmt.Fprintf(w, "</li>\n")
 
 		fmt.Fprintf(w, "</ul>\n")
 		printPageFoot(w)
@@ -881,6 +919,7 @@ func newUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/newuser/\" method=\"post\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading\">Create User</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
@@ -924,8 +963,8 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		login := getLoginUser(r, db)
-		if login.Userid != ADMIN_ID {
-			log.Printf("edit user: admin not logged in\n")
+		if login.Userid != ADMIN_ID && login.Userid != userid {
+			log.Printf("edit user: admin or self user not logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -986,6 +1025,7 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/edituser/?userid=%d&setpwd=%s\" method=\"post\">\n", userid, setpwd)
+		fmt.Fprintf(w, "<h1 class=\"heading\">Edit User</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
@@ -1063,7 +1103,12 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "<h1><a href=\"/\">Group Notes</a></h1>\n")
 	fmt.Fprintf(w, "<a href=\"/\">latest</a>\n")
 	if login.Userid != -1 {
-		fmt.Fprintf(w, "<a href=\"/newnote/\">new note</a>\n")
+		fmt.Fprintf(w, "<a href=\"/createnote/\">create note</a>\n")
+	}
+	if login.Userid == ADMIN_ID {
+		fmt.Fprintf(w, "<a href=\"/adminsetup\">setup</a>\n")
+	} else if login.Userid != -1 {
+		fmt.Fprintf(w, "<a href=\"/usersettings\">settings</a>\n")
 	}
 	fmt.Fprintf(w, "</div>\n")
 
