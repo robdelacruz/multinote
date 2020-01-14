@@ -8,134 +8,121 @@ body {
     color: #addb67; /* green text */
     color: #d6deeb; /* white greyish text */
 }
-.byline {
-    margin: 0;
-    font-size: 0.8em;
-    color: #888;
-}
-.byline a {
-    color: #888;
-}
-.error {
-    background-color: #F00;
-}
-.delete input, .delete textarea {
-    background-color: #aaa;
-}
-.delete button, .delete h2 {
-    color: #f00;
-}
-.actions {
-    margin: 0 0.2em;
-}
 a {
     color: #addb67; /* green links */
     color: #ecc48d; /* bright amber links */
 }
-/* amber monochrome */
-/*body, body a, .byline {
-    background-color: #000;
-    color: rgba(185,128,0,1.0);
-}*/
-code, pre {
-    background-color: #2d2c5d;
-    color: #d6deeb;
-}
-footer {
-    margin: 5em 0;
-    border-top: 1px solid #ddd;
-    font-style: italic;
-    font-size: smaller;
-    color: #888;
-}
-.permalink {
+.defn {
     margin-top: 2em;
+    margin-bottom: 0;
     font-style: italic;
     font-size: smaller;
-    color: #888;
 }
-nav {
-    display: flex;
-    justify-content: space-between;
-    margin: 1em 0;
-    padding-bottom: 0.5em;
+.masthead {
     border-bottom: 1px solid #ddd;
 }
-nav a {
-    margin-right: 0.5em;
-    font-size: 1em;
+.masthead p {
+    margin: 0.5em 0;
 }
-nav h1 {
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1em;
+}
+.navbar a {
+    margin-right: 0.5em;
+}
+.navbar h1 {
     display: inline;
     font-size: 1em;
 }
-nav .byline {
-    margin-top: 0.4em;
-}
-article h1 {
-    margin: 0;
+
+.heading {
+    margin-bottom: 0.2em;
     font-size: 1.2em;
 }
-.note-title {
-    text-decoration: none;
+.finetext {
+    font-size: 0.8em;
+}
+.finetext, .finetext a {
+    color: #888;
+}
+
+.line-menu {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+.line-menu li {
+    margin: 0;
+    padding: 0;
+    display: inline;
+}
+.line-menu li:not(:first-child)::before {
+    content: " | ";
+}
+
+.doc-title {
     color: #addb67; /* green */
 }
-.links {
+.doc-title a {
+    color: #addb67; /* green */
+    text-decoration: none;
+}
+
+.vertical-list {
     list-style-type: none;
     padding: 0;
 }
-.links li {
+.vertical-list li {
     padding-bottom: 1em;
 }
-.pager-links {
+.vertical-list p {
     margin: 0;
-    font-size: 0.8em;
-    color: #888;
+    padding: 0;
 }
-.pager-links a {
-    color: #888;
-}
-.replies {
-    margin-top: 2em;
-}
-.replies p {
-    margin-top: 0;
-}
-.replies hr {
+
+.dotted {
     border: dashed 1px;
     color: #888;
 }
-form label {
-    display: block;
-}
-form input, form textarea {
-    margin-bottom: 0.5em;
-}
-form .submit {
-    margin-top: 0.5em;
-}
-
-.menu h2 {
+.compact li {
     margin: 0;
-    font-size: 1.2em;
+    padding-bottom: 0.5em;
 }
-.menu p {
+.compact * {
     margin: 0.2em 0;
-}
-.menu ul {
-    list-style-type: none;
     padding: 0;
 }
-.menu li {
-    padding-bottom: 0.2em;
+.compact h1, .compact h2, .compact h3, .compact h4, .compact h5 {
+    font-size: 1em;
 }
-.menu-item {
-    margin: 0;
+
+.error {
+    color: #f00;
 }
-.menu-item a {
-    display: inline-block;
-    color: #888;
-    margin-right: 0.2em;
-    font-size: 0.8em;
+.simpleform .control {
+    margin: 0.5em 0;
+    padding: 0;
+}
+.simpleform .control label {
+    display: block;
+}
+.simpleform input:focus, .simpleform textarea:focus, .simpleform button:focus {
+    border: 0.3em solid #addb67;
+}
+.simpleform .control button {
+    margin-right: 0.5em;
+}
+
+.displayonly input, .displayonly textarea {
+    background-color: #aaa;
+}
+.warning {
+    color: #f00;
+}
+
+.reply {
+    margin-bottom: 1.2em;
 }
 
