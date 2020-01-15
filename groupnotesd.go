@@ -137,7 +137,7 @@ ORDER BY createdt DESC;`
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<article>\n")
+		fmt.Fprintf(w, "<article class=\"content\">\n")
 		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/note/%d\">%s</a></h1>", noteid, title)
 		tcreatedt, err := time.Parse(time.RFC3339, createdt)
 		if err != nil {
