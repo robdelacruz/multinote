@@ -116,6 +116,9 @@ a {
 .simpleform .control button {
     margin-right: 0.5em;
 }
+.submit {
+    font-weight: bold;
+}
 
 .displayonly input, .displayonly textarea {
     background-color: #aaa;

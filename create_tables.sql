@@ -12,6 +12,9 @@ CREATE TABLE notereply (notereply_id INTEGER PRIMARY KEY NOT NULL, note_id INTEG
 DROP TABLE IF EXISTS user;
 CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password TEXT, CONSTRAINT unique_username UNIQUE (username));
 
+DROP TABLE IF EXISTS site;
+CREATE TABLE site (site_id INTEGER PRIMARY KEY NOT NULL, title TEXT, desc TEXT);
+
 INSERT INTO user (user_id, username, password) VALUES (1, 'admin', '');
 INSERT INTO user (user_id, username, password) VALUES (2, 'guest', '');
 INSERT INTO user (username, password) VALUES ('robdelacruz', '$2a$10$QBKdo66QfkyqNczexwGFwul3731pQ970B96Bn1hgmvXLBu.LaJhFK'); -- password is '123'

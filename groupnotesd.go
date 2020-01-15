@@ -46,6 +46,8 @@ func main() {
 	http.HandleFunc("/usersettings/", usersettingsHandler(db))
 	http.HandleFunc("/newuser/", newUserHandler(db))
 	http.HandleFunc("/edituser/", editUserHandler(db))
+	http.HandleFunc("/sitesettings/", sitesettingsHandler(db))
+	http.HandleFunc("/userssetup/", userssetupHandler(db))
 	fmt.Printf("Listening on %s...\n", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	log.Fatal(err)
@@ -784,8 +786,6 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 func adminsetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var errmsg string
-
 		login := getLoginUser(r, db)
 		if login.Userid != ADMIN_ID {
 			log.Printf("adminsetup: admin not logged in\n")
@@ -797,45 +797,19 @@ func adminsetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<h2 class=\"heading doc-title\">Users</h2>\n")
+		fmt.Fprintf(w, "<h1 class=\"heading\">Admin Setup</h1>\n")
+
 		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
-
-		fmt.Fprintf(w, "<li>\n")
-		fmt.Fprintf(w, "  <ul class=\"line-menu finetext\">\n")
-		fmt.Fprintf(w, "    <li><p><a href=\"/newuser/\">Create new user</a></p></li>\n")
-		fmt.Fprintf(w, "  </ul>\n")
-		//		fmt.Fprintf(w, "<p><a href=\"/newuser/\">Create new user</a></p>\n")
-		fmt.Fprintf(w, "</li>\n")
-
-		s := "SELECT user_id, username FROM user ORDER BY username"
-		rows, err := db.Query(s)
-		for {
-			if err != nil {
-				errmsg = "A problem occured while loading users. Please try again."
-				fmt.Fprintf(w, "<li>\n")
-				fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
-				fmt.Fprintf(w, "</li>\n")
-				break
-			}
-
-			for rows.Next() {
-				var u User
-				rows.Scan(&u.Userid, &u.Username)
-				fmt.Fprintf(w, "<li>\n")
-				fmt.Fprintf(w, "<p>%s</p>\n", u.Username)
-
-				fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
-				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">rename</a>\n", u.Userid)
-				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">set password</a>\n", u.Userid)
-				fmt.Fprintf(w, "  <li><a href=\"/deactivateuser?userid=%d&setpwd=1\">deactivate</a>\n", u.Userid)
-				fmt.Fprintf(w, "</ul>\n")
-
-				fmt.Fprintf(w, "</li>\n")
-			}
-			break
-		}
-
+		fmt.Fprintf(w, "  <li>\n")
+		fmt.Fprintf(w, "    <p><a href=\"/sitesettings/\">Site Settings</a></p>\n")
+		fmt.Fprintf(w, "    <p class=\"finetext\">Set site title and description.</p>\n")
+		fmt.Fprintf(w, "  </li>\n")
+		fmt.Fprintf(w, "  <li>\n")
+		fmt.Fprintf(w, "    <p><a href=\"/userssetup/\">Users</a></p>\n")
+		fmt.Fprintf(w, "    <p class=\"finetext\">Set usernames and passwords.</p>\n")
+		fmt.Fprintf(w, "  </li>\n")
 		fmt.Fprintf(w, "</ul>\n")
+
 		printPageFoot(w)
 	}
 }
@@ -1058,6 +1032,137 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+		var title, desc string
+
+		login := getLoginUser(r, db)
+		if login.Userid != ADMIN_ID {
+			log.Printf("sitesettings: admin not logged in\n")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		s := "SELECT title, desc FROM site WHERE site_id = 1"
+		row := db.QueryRow(s)
+		err := row.Scan(&title, &desc)
+		if err == sql.ErrNoRows {
+			title = "Group Notes"
+			desc = "Central repository for notes"
+		} else if err != nil {
+			// site settings doesn't exist
+			log.Printf("error reading site settings for siteid %d\n", 1)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		if r.Method == "POST" {
+			title = r.FormValue("title")
+			desc = r.FormValue("desc")
+
+			for {
+				s := "INSERT OR REPLACE INTO site (site_id, title, desc) VALUES (1, ?, ?)"
+				_, err = sqlstmt(db, s).Exec(title, desc)
+				if err != nil {
+					log.Printf("DB error updating site settings: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/sitesettings/\" method=\"post\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading\">Site Settings</h1>")
+		if errmsg != "" {
+			fmt.Fprintf(w, "<div class=\"control\">\n")
+			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
+			fmt.Fprintf(w, "</div>\n")
+		}
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label>site title</label>\n")
+		fmt.Fprintf(w, "<input name=\"title\" type=\"text\" size=\"50\" value=\"%s\">\n", title)
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label>site description</label>\n")
+		fmt.Fprintf(w, "<input name=\"desc\" type=\"text\" size=\"50\" value=\"%s\">\n", desc)
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<button class=\"submit\">update settings</button>\n")
+		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</form>\n")
+
+		printPageFoot(w)
+	}
+}
+
+func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+
+		login := getLoginUser(r, db)
+		if login.Userid != ADMIN_ID {
+			log.Printf("userssetup: admin not logged in\n")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<h1 class=\"heading\">Users Setup</h1>\n")
+
+		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
+
+		fmt.Fprintf(w, "<li>\n")
+		fmt.Fprintf(w, "  <ul class=\"line-menu finetext\">\n")
+		fmt.Fprintf(w, "    <li><p><a href=\"/newuser/\">Create new user</a></p></li>\n")
+		fmt.Fprintf(w, "  </ul>\n")
+		//		fmt.Fprintf(w, "<p><a href=\"/newuser/\">Create new user</a></p>\n")
+		fmt.Fprintf(w, "</li>\n")
+		s := "SELECT user_id, username FROM user ORDER BY username"
+		rows, err := db.Query(s)
+		for {
+			if err != nil {
+				errmsg = "A problem occured while loading users. Please try again."
+				fmt.Fprintf(w, "<li>\n")
+				fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
+				fmt.Fprintf(w, "</li>\n")
+				break
+			}
+
+			for rows.Next() {
+				var u User
+				rows.Scan(&u.Userid, &u.Username)
+				fmt.Fprintf(w, "<li>\n")
+				fmt.Fprintf(w, "<p>%s</p>\n", u.Username)
+
+				fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
+				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">rename</a>\n", u.Userid)
+				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">set password</a>\n", u.Userid)
+				fmt.Fprintf(w, "  <li><a href=\"/deactivateuser?userid=%d&setpwd=1\">deactivate</a>\n", u.Userid)
+				fmt.Fprintf(w, "</ul>\n")
+
+				fmt.Fprintf(w, "</li>\n")
+			}
+			break
+		}
+
+		fmt.Fprintf(w, "</ul>\n")
+		printPageFoot(w)
+	}
+}
+
 func printByline(w io.Writer, login User, noteid int64, noteUser User, tcreatedt time.Time, nreplies int) {
 	createdt := tcreatedt.Format("2 Jan 2006")
 	fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
@@ -1097,10 +1202,19 @@ func printPageFoot(w io.Writer) {
 func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	login := getLoginUser(r, db)
 
+	s := "SELECT title, desc FROM site WHERE site_id = 1"
+	row := db.QueryRow(s)
+	var title, desc string
+	err := row.Scan(&title, &desc)
+	if err != nil {
+		title = "Group Notes"
+		desc = "Central repository for notes"
+	}
+
 	fmt.Fprintf(w, "<header class=\"masthead\">\n")
 	fmt.Fprintf(w, "<nav class=\"navbar\">\n")
 	fmt.Fprintf(w, "<div>\n")
-	fmt.Fprintf(w, "<h1><a href=\"/\">Group Notes</a></h1>\n")
+	fmt.Fprintf(w, "<h1><a href=\"/\">%s</a></h1>\n", title)
 	fmt.Fprintf(w, "<a href=\"/\">latest</a>\n")
 	if login.Userid != -1 {
 		fmt.Fprintf(w, "<a href=\"/createnote/\">create note</a>\n")
@@ -1122,7 +1236,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "</div>\n")
 
 	fmt.Fprintf(w, "</nav>\n")
-	fmt.Fprintf(w, "<p class=\"finetext\">I reserve the right to be biased, it makes life more interesting.</p>\n")
+	fmt.Fprintf(w, "<p class=\"finetext\">%s</p>\n", desc)
 	fmt.Fprintf(w, "</header>\n")
 }
 
