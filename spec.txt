@@ -17,3 +17,18 @@ begin writing a new response
 There were too many options to list them all on every screen. Most prompts were quite minimal, but a Help key was universally available. It would display a complete list of the options available at any point.
 ---
 
+To upload files:
+<form method="post" action="." enctype="multipart/form-data">
+  <input type="file" name="file">
+</form>
+
+func FileHandler(w, r) {
+    file, header := r.FormFile("file")
+    defer file.Close()
+
+    filename := header.Filename
+    bs, e := ioutil.ReadAll(file)
+
+    // Insert bytes bs to blob column.
+}
+

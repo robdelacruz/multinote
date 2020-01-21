@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
@@ -37,6 +38,10 @@ func main() {
 	http.HandleFunc("/createnote/", createNoteHandler(db))
 	http.HandleFunc("/editnote/", editNoteHandler(db))
 	http.HandleFunc("/delnote/", delNoteHandler(db))
+	http.HandleFunc("/file/", fileHandler(db))
+	http.HandleFunc("/uploadfile/", uploadFileHandler(db))
+	//http.HandleFunc("/editfile/", editFileHandler(db))
+	//http.HandleFunc("/delfile/", delFileHandler(db))
 	http.HandleFunc("/newreply/", newReplyHandler(db))
 	http.HandleFunc("/editreply/", editReplyHandler(db))
 	http.HandleFunc("/delreply/", delReplyHandler(db))
@@ -447,6 +452,208 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<button class=\"submit warning\">delete note</button>\n")
+		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</form>\n")
+
+		printPageFoot(w)
+	}
+}
+
+func parseFileid(url string) int64 {
+	sre := `^/file/(\d+)$`
+	re := regexp.MustCompile(sre)
+	matches := re.FindStringSubmatch(url)
+	if matches == nil {
+		return -1
+	}
+	return idtoi(matches[1])
+}
+
+func parseFilepathparm(url string) (string, string) {
+	sre := `^/file/(.+)$`
+	re := regexp.MustCompile(sre)
+	matches := re.FindStringSubmatch(url)
+	if matches == nil {
+		return "", ""
+	}
+
+	ss := strings.Split(matches[1], "/")
+	if len(ss) == 1 {
+		return "", ss[0]
+	}
+	path := strings.Join(ss[:len(ss)-1], "/")
+	if len(path) == 0 {
+		path = ""
+	}
+	name := ss[len(ss)-1]
+	return path, name
+}
+
+// Return filename extension. Ex. "image.png" returns "png", "file1" returns "".
+func fileext(filename string) string {
+	ss := strings.Split(filename, ".")
+	if len(ss) < 2 {
+		return ""
+	}
+	return ss[len(ss)-1]
+}
+
+func fileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var nameparm, pathparm string
+		fileid := parseFileid(r.URL.Path)
+		if fileid == -1 {
+			pathparm, nameparm = parseFilepathparm(r.URL.Path)
+			if nameparm == "" {
+				log.Printf("display file: no fileid or filepath\n")
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+		}
+
+		//login := getLoginUser(r, db)
+		// todo: authenticate user?
+
+		var row *sql.Row
+		var name, path string
+		var fileUserid int64
+		var bsContent []byte
+		if nameparm != "" {
+			s := "SELECT name, path, content, user_id FROM file WHERE name = ? AND path = ?"
+			row = db.QueryRow(s, nameparm, pathparm)
+		} else {
+			s := "SELECT name, path, content, user_id FROM file WHERE file_id = ?"
+			row = db.QueryRow(s, fileid)
+		}
+
+		err := row.Scan(&name, &path, &bsContent, &fileUserid)
+		if err == sql.ErrNoRows {
+			// file doesn't exist
+			log.Printf("display file: file doesn't exist\n")
+			http.Error(w, fmt.Sprintf("file doesn't exist"), 404)
+			return
+		} else if err != nil {
+			log.Printf("display file: server error (%s)\n", err)
+			http.Error(w, fmt.Sprintf("server error (%s)", err), 500)
+			return
+		}
+
+		ext := fileext(name)
+		if ext == "" {
+			w.Header().Set("Content-Type", "application")
+		} else if ext == "png" || ext == "gif" || ext == "bmp" {
+			w.Header().Set("Content-Type", fmt.Sprintf("image/%s", ext))
+		} else if ext == "jpg" {
+			w.Header().Set("Content-Type", fmt.Sprintf("image/jpeg"))
+		} else {
+			w.Header().Set("Content-Type", fmt.Sprintf("application/%s", ext))
+		}
+
+		_, err = w.Write(bsContent)
+		if err != nil {
+			log.Printf("display file: server error (%s)\n", err)
+			http.Error(w, fmt.Sprintf("server error (%s)", err), 500)
+			return
+		}
+	}
+}
+
+func uploadFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+		var successmsg string
+		var name, path string
+
+		login := getLoginUser(r, db)
+		if login.Userid == -1 {
+			log.Printf("upload file: no user logged in\n")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		if r.Method == "POST" {
+			for {
+				file, header, err := r.FormFile("file")
+				if err != nil {
+					log.Printf("uploadfile: IO error reading file: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+				defer file.Close()
+
+				createdt := time.Now().Format(time.RFC3339)
+				name = r.FormValue("name")
+				path = r.FormValue("path")
+				if name == "" {
+					name = header.Filename
+				}
+				// Strip out any leading or trailing "/" from path.
+				// Ex. "/abc/dir/" becomes "abc/dir".
+				path = strings.TrimPrefix(path, "/")
+				path = strings.TrimSuffix(path, "/")
+
+				bsContent, err := ioutil.ReadAll(file)
+				if err != nil {
+					log.Printf("uploadfile: IO error reading file: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
+				s := "INSERT INTO file (name, path, content, createdt, user_id) VALUES (?, ?, ?, ?, ?);"
+				_, err = sqlstmt(db, s).Exec(name, path, bsContent, createdt, login.Userid)
+				if err != nil {
+					log.Printf("uploadfile: DB error inserting file: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
+				// Successfully added file.
+				filepath := name
+				if path != "" {
+					filepath = fmt.Sprintf("%s/%s", path, name)
+				}
+				link := fmt.Sprintf("<a href=\"/file/%s\">%s</a>", filepath, filepath)
+				successmsg = fmt.Sprintf("Successfully added file: %s", link)
+				name = ""
+				path = ""
+				break
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/uploadfile/\" method=\"post\" enctype=\"multipart/form-data\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading\">Upload File</h1>")
+		if errmsg != "" {
+			fmt.Fprintf(w, "<div class=\"control\">\n")
+			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
+			fmt.Fprintf(w, "</div>\n")
+		}
+		if successmsg != "" {
+			fmt.Fprintf(w, "<div class=\"control\">\n")
+			fmt.Fprintf(w, "<p class=\"success\">%s</p>\n", successmsg)
+			fmt.Fprintf(w, "</div>\n")
+		}
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label for=\"file\">select file</label>\n")
+		fmt.Fprintf(w, "<input id=\"file\" name=\"file\" type=\"file\">\n")
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label for=\"name\">name</label>\n")
+		fmt.Fprintf(w, "<input id=\"name\" name=\"name\" type=\"text\" size=\"50\" value=\"%s\">\n", name)
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label for=\"path\">path</label>\n")
+		fmt.Fprintf(w, "<input id=\"path\" name=\"path\" type=\"text\" size=\"50\" value=\"%s\">\n", path)
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<button class=\"submit\">upload file</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
 
@@ -1218,6 +1425,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "<a href=\"/\">latest</a>\n")
 	if login.Userid != -1 {
 		fmt.Fprintf(w, "<a href=\"/createnote/\">create note</a>\n")
+		fmt.Fprintf(w, "<a href=\"/uploadfile/\">upload file</a>\n")
 	}
 	if login.Userid == ADMIN_ID {
 		fmt.Fprintf(w, "<a href=\"/adminsetup\">setup</a>\n")

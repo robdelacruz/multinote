@@ -98,6 +98,9 @@ a {
 .error {
     color: #f00;
 }
+.error {
+    color: #0f0;
+}
 .simpleform .control {
     margin: 0.5em 0;
     padding: 0;

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Website</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<header class="masthead">
+    <nav class="navbar">
+        <div>
+            <h1><a href="#">Group Notes</a></h1>
+            <a href="notes.html">latest</a>
+            <a href="newnote.html">new note</a>
+        </div>
+        <div>
+            <span>robdelacruz</span>
+            <a href="login.html">logout</a>
+        </div>
+    </nav>
+    <p class="finetext">I reserve the right to be biased, it makes life more interesting.</p>
+</header>
+<section class="gallery">
+
+<p class="defn">form:</p>
+<form class="simpleform" action="." method="post">
+    <h1 class="heading">New Note</h1>
+    <ul class="line-menu finetext">
+        <li>post as robdelacruz</li>
+        <li>Jan 2, 2020</li>
+    </ul>
+    <div class="control">
+        <p class="error">An error occured.</p>
+    </div>
+    <div class="control">
+        <label>title</label>
+        <input name="title" type="text" size="50" value="">
+    </div>
+    <div class="control">
+        <label>upload image</label>
+        <input name="selfile" type="file" multiple size="50" value="">
+    </div>
+    <div class="control">
+        <label>note</label>
+        <textarea name="body" rows="25" cols="80"></textarea><br>
+    </div>
+    <div class="control">
+        <button class="submit">add note</button>
+        <button class="submit">delete</button>
+        <button class="submit">cancel</button>
+    </div>
+</form>
+
+<div id="imgpreview">
+</div>
+
+</section>
+<script>
+let imgpreview = document.querySelector("#imgpreview");
+let selfile = document.querySelector("[name='selfile']");
+
+selfile.addEventListener("change", handleFiles, false);
+function handleFiles(e) {
+    for (let i=0; i < e.target.files.length; i++) {
+        let file = e.target.files[i];
+        console.log(file.name);
+        console.log(file.type);
+
+        if (!file.type.startsWith("image/")) {
+            continue;
+        }
+        let img = document.createElement("img");
+        img.file = file;
+        imgpreview.appendChild(img);
+        img.style.width = "200px";
+
+        let r = new FileReader();
+        r.onload = cbImg(img);
+        r.readAsDataURL(file);
+    }
+}
+
+function cbImg(img) {
+    return function(e) {
+        img.src = e.target.result;
+    }
+}
+</script>
+</body>
+</html>
+
