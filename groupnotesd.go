@@ -469,7 +469,7 @@ func parseFileid(url string) int64 {
 	return idtoi(matches[1])
 }
 
-func parseFilepathparm(url string) (string, string) {
+func parseUrlFilepath(url string) (string, string) {
 	sre := `^/file/(.+)$`
 	re := regexp.MustCompile(sre)
 	matches := re.FindStringSubmatch(url)
@@ -500,11 +500,11 @@ func fileext(filename string) string {
 
 func fileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var nameparm, pathparm string
+		var qname, qpath string
 		fileid := parseFileid(r.URL.Path)
 		if fileid == -1 {
-			pathparm, nameparm = parseFilepathparm(r.URL.Path)
-			if nameparm == "" {
+			qpath, qname = parseUrlFilepath(r.URL.Path)
+			if qname == "" {
 				log.Printf("display file: no fileid or filepath\n")
 				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
@@ -518,9 +518,9 @@ func fileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var name, path string
 		var fileUserid int64
 		var bsContent []byte
-		if nameparm != "" {
+		if qname != "" {
 			s := "SELECT name, path, content, user_id FROM file WHERE name = ? AND path = ?"
-			row = db.QueryRow(s, nameparm, pathparm)
+			row = db.QueryRow(s, qname, qpath)
 		} else {
 			s := "SELECT name, path, content, user_id FROM file WHERE file_id = ?"
 			row = db.QueryRow(s, fileid)
@@ -1421,19 +1421,31 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "<header class=\"masthead\">\n")
 	fmt.Fprintf(w, "<nav class=\"navbar\">\n")
 	fmt.Fprintf(w, "<div>\n")
+
+	// Menu row 1
+	fmt.Fprintf(w, "<div>\n")
 	fmt.Fprintf(w, "<h1><a href=\"/\">%s</a></h1>\n", title)
-	fmt.Fprintf(w, "<a href=\"/\">latest</a>\n")
 	if login.Userid != -1 {
-		fmt.Fprintf(w, "<a href=\"/createnote/\">create note</a>\n")
+		fmt.Fprintf(w, "<a class=\"actiontext\" href=\"/createnote/\">create note</a>\n")
+	}
+	fmt.Fprintf(w, "<a href=\"/\">browse notes</a>\n")
+
+	fmt.Fprintf(w, "<span class=\"finetext\">\n")
+	if login.Userid != -1 {
 		fmt.Fprintf(w, "<a href=\"/uploadfile/\">upload file</a>\n")
 	}
+	fmt.Fprintf(w, "<a href=\"/\">browse files</a>\n")
 	if login.Userid == ADMIN_ID {
 		fmt.Fprintf(w, "<a href=\"/adminsetup\">setup</a>\n")
 	} else if login.Userid != -1 {
 		fmt.Fprintf(w, "<a href=\"/usersettings\">settings</a>\n")
 	}
+	fmt.Fprintf(w, "</span>\n")
 	fmt.Fprintf(w, "</div>\n")
 
+	fmt.Fprintf(w, "</div>\n")
+
+	// User section
 	fmt.Fprintf(w, "<div>\n")
 	fmt.Fprintf(w, "<span>%s</span>\n", login.Username)
 	if login.Userid != -1 {

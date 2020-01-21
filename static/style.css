@@ -48,6 +48,13 @@ a {
 .finetext, .finetext a {
     color: #888;
 }
+.smalltext {
+    font-size: 0.8em;
+}
+
+.actiontext, .actiontext a {
+    color: #addb67; /* green */
+}
 
 .line-menu {
     list-style-type: none;
@@ -98,8 +105,8 @@ a {
 .error {
     color: #f00;
 }
-.error {
-    color: #0f0;
+.success {
+    color: #addb67; /* green */
 }
 .simpleform .control {
     margin: 0.5em 0;
