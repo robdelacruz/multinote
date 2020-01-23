@@ -1425,12 +1425,15 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Menu row 1
 	fmt.Fprintf(w, "<div>\n")
 	fmt.Fprintf(w, "<h1><a href=\"/\">%s</a></h1>\n", title)
+	fmt.Fprintf(w, "</div>\n")
+
+	// Menu row 2
+	fmt.Fprintf(w, "<div class=\"smalltext italic\">\n")
 	if login.Userid != -1 {
 		fmt.Fprintf(w, "<a class=\"actiontext\" href=\"/createnote/\">create note</a>\n")
 	}
 	fmt.Fprintf(w, "<a href=\"/\">browse notes</a>\n")
 
-	fmt.Fprintf(w, "<span class=\"finetext\">\n")
 	if login.Userid != -1 {
 		fmt.Fprintf(w, "<a href=\"/uploadfile/\">upload file</a>\n")
 	}
@@ -1440,13 +1443,12 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	} else if login.Userid != -1 {
 		fmt.Fprintf(w, "<a href=\"/usersettings\">settings</a>\n")
 	}
-	fmt.Fprintf(w, "</span>\n")
 	fmt.Fprintf(w, "</div>\n")
 
 	fmt.Fprintf(w, "</div>\n")
 
 	// User section
-	fmt.Fprintf(w, "<div>\n")
+	fmt.Fprintf(w, "<div class=\"smalltext italic\">\n")
 	fmt.Fprintf(w, "<span>%s</span>\n", login.Username)
 	if login.Userid != -1 {
 		fmt.Fprintf(w, "<a href=\"/logout\">logout</a>\n")

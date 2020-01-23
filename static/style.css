@@ -51,6 +51,9 @@ a {
 .smalltext {
     font-size: 0.8em;
 }
+.italic {
+    font-style: italic;
+}
 
 .actiontext, .actiontext a {
     color: #addb67; /* green */
