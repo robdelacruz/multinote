@@ -32,3 +32,12 @@ func FileHandler(w, r) {
     // Insert bytes bs to blob column.
 }
 
+Other functions needed:
+- search notes/files
+- deactivate user
+- (site settings page) add help text textarea for login page
+- allow anonymous replies?
+- prev/next note links in note page
+- [more] paging in notes list (see https://stackoverflow.com/questions/14468586/efficient-paging-in-sqlite-with-millions-of-records/14468878)
+
+
