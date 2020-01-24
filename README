@@ -7,7 +7,15 @@ License:
 
 Manual:
 
-todo - still in development
+Build and Install
+-----------------
+  $ make dep
+  $ sqlite3 notes.db < create_tables.sql
+  $ make
+
+  Run 'groupnotes' to start the web service.
+
+groupnotes uses a single sqlite3 database file to store all notes, uploaded files, users, and site settings.
 
 
 Contact:
