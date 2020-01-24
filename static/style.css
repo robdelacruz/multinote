@@ -30,7 +30,7 @@ a {
     justify-content: space-between;
     margin-top: 1em;
 }
-.navbar a {
+.navbar a:not(:last-child) {
     margin-right: 0.5em;
 }
 .navbar h1 {
@@ -53,6 +53,9 @@ a {
 }
 .italic {
     font-style: italic;
+}
+.align-right {
+    text-align: right;
 }
 
 .actiontext, .actiontext a {
