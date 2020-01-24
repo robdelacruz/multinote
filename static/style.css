@@ -142,3 +142,7 @@ a {
     font-size: 1em;
 }
 
+img.thumbnail {
+    max-height: 100px;
+}
+

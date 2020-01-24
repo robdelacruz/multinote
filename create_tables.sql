@@ -10,7 +10,7 @@ CREATE TABLE note (note_id INTEGER PRIMARY KEY NOT NULL, title TEXT, body TEXT, 
 
 CREATE TABLE notereply (notereply_id INTEGER PRIMARY KEY NOT NULL, note_id INTEGER, replybody TEXT, createdt TEXT, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES user, FOREIGN KEY(note_id) REFERENCES note);
 
-CREATE TABLE file (file_id INTEGER PRIMARY KEY NOT NULL, name TEXT, path TEXT, content BLOB, createdt TEXT, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES user);
+CREATE TABLE file (file_id INTEGER PRIMARY KEY NOT NULL, filename TEXT, folder TEXT, desc TEXT, content BLOB, createdt TEXT, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES user);
 
 DROP TABLE IF EXISTS user;
 CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password TEXT, CONSTRAINT unique_username UNIQUE (username));
