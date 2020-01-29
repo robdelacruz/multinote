@@ -39,5 +39,10 @@ Other functions needed:
 - allow anonymous replies?
 - prev/next note links in note page
 - [more] paging in notes list (see https://stackoverflow.com/questions/14468586/efficient-paging-in-sqlite-with-millions-of-records/14468878)
+- Show description in file list
+- set html img helper text in file list for images (use file 'desc' column)
+- option to only show notes/files for logged in users
+
+
 
 

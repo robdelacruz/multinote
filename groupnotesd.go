@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -75,6 +76,15 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		w.Header().Set("Content-Type", "text/html")
 
+		startNoteid := idtoi(r.FormValue("startid"))
+		if startNoteid <= 0 {
+			startNoteid = math.MaxInt64
+		}
+		nPageEntries := atoi(r.FormValue("n"))
+		if nPageEntries <= 0 {
+			nPageEntries = 100 // $$todo replace with default or settings value
+		}
+
 		printPageHead(w)
 		printPageNav(w, r, db)
 
@@ -84,12 +94,15 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 (SELECT COALESCE(MAX(createdt), '') FROM notereply where note.note_id = notereply.note_id) AS maxreplydt 
 FROM note 
 LEFT OUTER JOIN user ON note.user_id = user.user_id 
-ORDER BY MAX(createdt, maxreplydt) DESC;`
-		rows, err := db.Query(s)
+WHERE note_id <= ? 
+ORDER BY MAX(createdt, maxreplydt) DESC 
+LIMIT ?;`
+		rows, err := db.Query(s, startNoteid, nPageEntries)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
+		var lastid int64
 		for rows.Next() {
 			var noteid int64
 			var title, body, createdt, maxreplydt string
@@ -97,6 +110,7 @@ ORDER BY MAX(createdt, maxreplydt) DESC;`
 			var numreplies int
 			rows.Scan(&noteid, &title, &body, &createdt, &noteUser.Userid, &noteUser.Username, &numreplies, &maxreplydt)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
+			lastid = noteid
 
 			fmt.Fprintf(w, "<li>\n")
 			fmt.Fprintf(w, "<p class=\"doc-title\"><a href=\"/note/%d\">%s</a></p>\n", noteid, title)
@@ -105,6 +119,13 @@ ORDER BY MAX(createdt, maxreplydt) DESC;`
 			fmt.Fprintf(w, "</li>\n")
 		}
 		fmt.Fprintf(w, "</ul>\n")
+
+		if lastid > 1 {
+			fmt.Fprintf(w, "<p class=\"smalltext\">\n")
+			moreLink := fmt.Sprintf("/?startid=%d&n=%d", lastid-1, nPageEntries)
+			fmt.Fprintf(w, "<a href=\"%s\">More</a>\n", moreLink)
+			fmt.Fprintf(w, "</p>\n")
+		}
 
 		printPageFoot(w)
 	}
@@ -1822,6 +1843,17 @@ func idtoi(sid string) int64 {
 		return -1
 	}
 	return int64(n)
+}
+
+func atoi(s string) int {
+	if s == "" {
+		return -1
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return -1
+	}
+	return n
 }
 
 func sqlstmt(db *sql.DB, s string) *sql.Stmt {
