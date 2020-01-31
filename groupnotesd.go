@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"math"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -19,6 +18,8 @@ import (
 )
 
 const ADMIN_ID = 1
+
+const SETTINGS_LIMIT = 100
 
 type User struct {
 	Userid   int64
@@ -76,13 +77,13 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		w.Header().Set("Content-Type", "text/html")
 
-		startNoteid := idtoi(r.FormValue("startid"))
-		if startNoteid <= 0 {
-			startNoteid = math.MaxInt64
+		offset := int64(atoi(r.FormValue("offset")))
+		if offset <= 0 {
+			offset = 0
 		}
-		nPageEntries := atoi(r.FormValue("n"))
-		if nPageEntries <= 0 {
-			nPageEntries = 100 // $$todo replace with default or settings value
+		limit := int64(atoi(r.FormValue("limit")))
+		if limit <= 0 {
+			limit = SETTINGS_LIMIT
 		}
 
 		printPageHead(w)
@@ -94,15 +95,13 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 (SELECT COALESCE(MAX(createdt), '') FROM notereply where note.note_id = notereply.note_id) AS maxreplydt 
 FROM note 
 LEFT OUTER JOIN user ON note.user_id = user.user_id 
-WHERE note_id <= ? 
 ORDER BY MAX(createdt, maxreplydt) DESC 
-LIMIT ?;`
-		rows, err := db.Query(s, startNoteid, nPageEntries)
+LIMIT ? OFFSET ?`
+		rows, err := db.Query(s, limit, offset)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		var lastid int64
 		for rows.Next() {
 			var noteid int64
 			var title, body, createdt, maxreplydt string
@@ -110,7 +109,6 @@ LIMIT ?;`
 			var numreplies int
 			rows.Scan(&noteid, &title, &body, &createdt, &noteUser.Userid, &noteUser.Username, &numreplies, &maxreplydt)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
-			lastid = noteid
 
 			fmt.Fprintf(w, "<li>\n")
 			fmt.Fprintf(w, "<p class=\"doc-title\"><a href=\"/note/%d\">%s</a></p>\n", noteid, title)
@@ -120,12 +118,10 @@ LIMIT ?;`
 		}
 		fmt.Fprintf(w, "</ul>\n")
 
-		if lastid > 1 {
-			fmt.Fprintf(w, "<p class=\"smalltext\">\n")
-			moreLink := fmt.Sprintf("/?startid=%d&n=%d", lastid-1, nPageEntries)
-			fmt.Fprintf(w, "<a href=\"%s\">More</a>\n", moreLink)
-			fmt.Fprintf(w, "</p>\n")
-		}
+		fmt.Fprintf(w, "<p class=\"smalltext\">\n")
+		moreLink := fmt.Sprintf("/?offset=%d&limit=%d", offset+limit, limit)
+		fmt.Fprintf(w, "<a href=\"%s\">More</a>\n", moreLink)
+		fmt.Fprintf(w, "</p>\n")
 
 		printPageFoot(w)
 	}
@@ -171,6 +167,19 @@ ORDER BY createdt DESC;`
 			tcreatedt = time.Now()
 		}
 		printByline(w, login, noteid, noteUser, tcreatedt, numreplies)
+
+		prevNoteid := queryPrevNoteid(db, noteid)
+		nextNoteid := queryNextNoteid(db, noteid)
+		if prevNoteid != -1 || nextNoteid != -1 {
+			fmt.Fprintf(w, "<nav class=\"pagenav finetext margin-bottom align-right\">\n")
+			if prevNoteid != -1 {
+				fmt.Fprintf(w, fmt.Sprintf("<a href=\"/note/%d\">Previous</a>", prevNoteid))
+			}
+			if nextNoteid != -1 {
+				fmt.Fprintf(w, fmt.Sprintf("<a href=\"/note/%d\">Next</a>", nextNoteid))
+			}
+			fmt.Fprintf(w, "</nav>\n")
+		}
 
 		bodyMarkup := parseMarkdown(body)
 		fmt.Fprintf(w, bodyMarkup)
@@ -1828,6 +1837,34 @@ func isUsernameExists(db *sql.DB, username string) bool {
 		return false
 	}
 	return true
+}
+
+func queryPrevNoteid(db *sql.DB, noteid int64) int64 {
+	s := "SELECT note_id FROM note WHERE note_id < ? ORDER BY note_id DESC LIMIT 1"
+	row := db.QueryRow(s, noteid)
+	var prevNoteid int64
+	err := row.Scan(&prevNoteid)
+	if err == sql.ErrNoRows {
+		return -1
+	}
+	if err != nil {
+		return -1
+	}
+	return prevNoteid
+}
+
+func queryNextNoteid(db *sql.DB, noteid int64) int64 {
+	s := "SELECT note_id FROM note WHERE note_id > ? ORDER BY note_id LIMIT 1"
+	row := db.QueryRow(s, noteid)
+	var nextNoteid int64
+	err := row.Scan(&nextNoteid)
+	if err == sql.ErrNoRows {
+		return -1
+	}
+	if err != nil {
+		return -1
+	}
+	return nextNoteid
 }
 
 func parseMarkdown(s string) string {

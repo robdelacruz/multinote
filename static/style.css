@@ -38,6 +38,13 @@ a {
     font-size: 1em;
 }
 
+.pagenav {
+}
+.pagenav a:not(:last-child) {
+    display: inline-block;
+    margin-right: 0.5em;
+}
+
 .heading {
     margin: 0.2em 0;
     font-size: 1.2em;
@@ -56,6 +63,9 @@ a {
 }
 .align-right {
     text-align: right;
+}
+.margin-bottom {
+    margin-bottom: 0.5em;
 }
 
 .actiontext, .actiontext a {
