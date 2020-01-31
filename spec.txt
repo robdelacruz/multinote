@@ -37,8 +37,6 @@ Other functions needed:
 - deactivate user
 - (site settings page) add help text textarea for login page
 - allow anonymous replies?
-- Show description in file list
-- set html img helper text in file list for images (use file 'desc' column)
 - option to only show notes/files for logged in users
 
 

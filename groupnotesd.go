@@ -166,7 +166,7 @@ ORDER BY createdt DESC;`
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<article class=\"content\">\n")
-		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/note/%d\">%s</a></h1>", noteid, title)
+		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/note/%d\">%s</a></h1>\n", noteid, title)
 		tcreatedt, err := time.Parse(time.RFC3339, createdt)
 		if err != nil {
 			tcreatedt = time.Now()
@@ -536,16 +536,26 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		w.Header().Set("Content-Type", "text/html")
 
+		offset := int64(atoi(r.FormValue("offset")))
+		if offset <= 0 {
+			offset = 0
+		}
+		limit := int64(atoi(r.FormValue("limit")))
+		if limit <= 0 {
+			limit = SETTINGS_LIMIT
+		}
+
 		printPageHead(w)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
-		s := "SELECT file_id, filename, folder, desc, createdt, user.user_id, username FROM file LEFT OUTER JOIN user ON file.user_id = user.user_id ORDER BY createdt DESC;"
-		rows, err := db.Query(s)
+		s := "SELECT file_id, filename, folder, desc, createdt, user.user_id, username FROM file LEFT OUTER JOIN user ON file.user_id = user.user_id ORDER BY createdt DESC LIMIT ? OFFSET ?"
+		rows, err := db.Query(s, limit, offset)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
+		nrows := 0
 		for rows.Next() {
 			var fileid int64
 			var filename, folder, desc, createdt string
@@ -554,22 +564,39 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
 			fmt.Fprintf(w, "<li>\n")
+			fmt.Fprintf(w, "<article class=\"content smallmargin-bottom\">\n")
 			filepath := filename
 			if folder != "" {
 				filepath = fmt.Sprintf("%s/%s", folder, filename)
 			}
-			fmt.Fprintf(w, "<p class=\"doc-title\"><a href=\"/file/%d\">%s</a></p>\n", fileid, filepath)
+			fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filepath)
+			printFileByline(w, login, fileid, fileUser, tcreatedt)
+
 			ext := fileext(filename)
 			if ext == "png" || ext == "gif" || ext == "bmp" || ext == "jpg" || ext == "jpeg" {
 				fmt.Fprintf(w, "<p>\n")
-				fmt.Fprintf(w, "<img class=\"thumbnail\" src=\"/file/%d\">\n", fileid)
+				fmt.Fprintf(w, "<a href=\"/file/%d\"><img class=\"thumbnail\" src=\"/file/%d\"></a>\n", fileid, fileid)
 				fmt.Fprintf(w, "</p>\n")
 			}
 
-			printFileByline(w, login, fileid, fileUser, tcreatedt)
+			descMarkup := parseMarkdown(desc)
+			fmt.Fprintf(w, "<div class=\"smalltext smallmargin-top\">\n")
+			fmt.Fprintf(w, descMarkup)
+			fmt.Fprintf(w, "</div>\n")
+
+			fmt.Fprintf(w, "</article>\n")
 			fmt.Fprintf(w, "</li>\n")
+
+			nrows++
 		}
 		fmt.Fprintf(w, "</ul>\n")
+
+		if int64(nrows) == limit {
+			fmt.Fprintf(w, "<p class=\"smalltext\">\n")
+			moreLink := fmt.Sprintf("/browsefiles?offset=%d&limit=%d", offset+limit, limit)
+			fmt.Fprintf(w, "<a href=\"%s\">More</a>\n", moreLink)
+			fmt.Fprintf(w, "</p>\n")
+		}
 
 		printPageFoot(w)
 	}

@@ -71,6 +71,12 @@ a {
 .margin-bottom {
     margin-bottom: 1em;
 }
+.smallmargin-top {
+    margin-top: 0.5em;
+}
+.smallmargin-bottom {
+    margin-bottom: 0.5em;
+}
 
 .line-menu {
     list-style-type: none;
