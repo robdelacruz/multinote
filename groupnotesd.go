@@ -102,6 +102,7 @@ LIMIT ? OFFSET ?`
 			log.Fatal(err)
 			return
 		}
+		nrows := 0
 		for rows.Next() {
 			var noteid int64
 			var title, body, createdt, maxreplydt string
@@ -115,13 +116,17 @@ LIMIT ? OFFSET ?`
 
 			printByline(w, login, noteid, noteUser, tcreatedt, numreplies)
 			fmt.Fprintf(w, "</li>\n")
+
+			nrows++
 		}
 		fmt.Fprintf(w, "</ul>\n")
 
-		fmt.Fprintf(w, "<p class=\"smalltext\">\n")
-		moreLink := fmt.Sprintf("/?offset=%d&limit=%d", offset+limit, limit)
-		fmt.Fprintf(w, "<a href=\"%s\">More</a>\n", moreLink)
-		fmt.Fprintf(w, "</p>\n")
+		if int64(nrows) == limit {
+			fmt.Fprintf(w, "<p class=\"smalltext\">\n")
+			moreLink := fmt.Sprintf("/?offset=%d&limit=%d", offset+limit, limit)
+			fmt.Fprintf(w, "<a href=\"%s\">More</a>\n", moreLink)
+			fmt.Fprintf(w, "</p>\n")
+		}
 
 		printPageFoot(w)
 	}
@@ -167,19 +172,6 @@ ORDER BY createdt DESC;`
 			tcreatedt = time.Now()
 		}
 		printByline(w, login, noteid, noteUser, tcreatedt, numreplies)
-
-		prevNoteid := queryPrevNoteid(db, noteid)
-		nextNoteid := queryNextNoteid(db, noteid)
-		if prevNoteid != -1 || nextNoteid != -1 {
-			fmt.Fprintf(w, "<nav class=\"pagenav finetext margin-bottom align-right\">\n")
-			if prevNoteid != -1 {
-				fmt.Fprintf(w, fmt.Sprintf("<a href=\"/note/%d\">Previous</a>", prevNoteid))
-			}
-			if nextNoteid != -1 {
-				fmt.Fprintf(w, fmt.Sprintf("<a href=\"/note/%d\">Next</a>", nextNoteid))
-			}
-			fmt.Fprintf(w, "</nav>\n")
-		}
 
 		bodyMarkup := parseMarkdown(body)
 		fmt.Fprintf(w, bodyMarkup)
@@ -237,6 +229,24 @@ ORDER BY createdt DESC;`
 			fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
 			fmt.Fprintf(w, "</div>\n")
 			fmt.Fprintf(w, "</form>\n")
+		}
+
+		// previous and next note nav
+		prevNoteid, prevNoteTitle := queryPrevNoteid(db, noteid)
+		nextNoteid, nextNoteTitle := queryNextNoteid(db, noteid)
+		if prevNoteid != -1 || nextNoteid != -1 {
+			fmt.Fprintf(w, "<nav class=\"pagenav smalltext doc-title2 margin-top margin-bottom\">\n")
+			fmt.Fprintf(w, "<div>\n")
+			if prevNoteid != -1 {
+				fmt.Fprintf(w, fmt.Sprintf("<a href=\"/note/%d\">&lt;&lt; %s</a>\n", prevNoteid, prevNoteTitle))
+			}
+			fmt.Fprintf(w, "</div>\n")
+			fmt.Fprintf(w, "<div>\n")
+			if nextNoteid != -1 {
+				fmt.Fprintf(w, fmt.Sprintf("<a href=\"/note/%d\">&gt;&gt; %s</a>\n", nextNoteid, nextNoteTitle))
+			}
+			fmt.Fprintf(w, "</div>\n")
+			fmt.Fprintf(w, "</nav>\n")
 		}
 
 		printPageFoot(w)
@@ -1763,7 +1773,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Menu row 2
 	fmt.Fprintf(w, "<div class=\"smalltext italic\">\n")
 	if login.Userid != -1 {
-		fmt.Fprintf(w, "<a class=\"actiontext\" href=\"/createnote/\">create note</a>\n")
+		fmt.Fprintf(w, "<a href=\"/createnote/\">create note</a>\n")
 	}
 	fmt.Fprintf(w, "<a href=\"/\">browse notes</a>\n")
 
@@ -1839,32 +1849,36 @@ func isUsernameExists(db *sql.DB, username string) bool {
 	return true
 }
 
-func queryPrevNoteid(db *sql.DB, noteid int64) int64 {
-	s := "SELECT note_id FROM note WHERE note_id < ? ORDER BY note_id DESC LIMIT 1"
+func queryPrevNoteid(db *sql.DB, noteid int64) (int64, string) {
+	s := "SELECT note_id, title FROM note WHERE note_id < ? ORDER BY note_id DESC LIMIT 1"
 	row := db.QueryRow(s, noteid)
 	var prevNoteid int64
-	err := row.Scan(&prevNoteid)
+	var title string
+	err := row.Scan(&prevNoteid, &title)
 	if err == sql.ErrNoRows {
-		return -1
+		return -1, ""
 	}
 	if err != nil {
-		return -1
+		log.Printf("queryPrevNoteid(): noteid=%d, err: '%s'\n", noteid, err)
+		return -1, ""
 	}
-	return prevNoteid
+	return prevNoteid, title
 }
 
-func queryNextNoteid(db *sql.DB, noteid int64) int64 {
-	s := "SELECT note_id FROM note WHERE note_id > ? ORDER BY note_id LIMIT 1"
+func queryNextNoteid(db *sql.DB, noteid int64) (int64, string) {
+	s := "SELECT note_id, title FROM note WHERE note_id > ? ORDER BY note_id LIMIT 1"
 	row := db.QueryRow(s, noteid)
 	var nextNoteid int64
-	err := row.Scan(&nextNoteid)
+	var title string
+	err := row.Scan(&nextNoteid, &title)
 	if err == sql.ErrNoRows {
-		return -1
+		return -1, ""
 	}
 	if err != nil {
-		return -1
+		log.Printf("queryNextNoteid(): noteid=%d, err: '%s'\n", noteid, err)
+		return -1, ""
 	}
-	return nextNoteid
+	return nextNoteid, title
 }
 
 func parseMarkdown(s string) string {

@@ -39,9 +39,10 @@ a {
 }
 
 .pagenav {
+    display: flex;
+    justify-content: space-between;
 }
 .pagenav a:not(:last-child) {
-    display: inline-block;
     margin-right: 0.5em;
 }
 
@@ -64,12 +65,11 @@ a {
 .align-right {
     text-align: right;
 }
-.margin-bottom {
-    margin-bottom: 0.5em;
+.margin-top {
+    margin-top: 1em;
 }
-
-.actiontext, .actiontext a {
-    color: #addb67; /* green */
+.margin-bottom {
+    margin-bottom: 1em;
 }
 
 .line-menu {
