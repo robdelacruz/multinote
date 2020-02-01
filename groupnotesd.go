@@ -544,11 +544,12 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if limit <= 0 {
 			limit = SETTINGS_LIMIT
 		}
+		showpreview := r.FormValue("showpreview")
 
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
+		fmt.Fprintf(w, "<div class=\"file-browser\">\n")
 		s := "SELECT file_id, filename, folder, desc, createdt, user.user_id, username FROM file LEFT OUTER JOIN user ON file.user_id = user.user_id ORDER BY createdt DESC LIMIT ? OFFSET ?"
 		rows, err := db.Query(s, limit, offset)
 		if err != nil {
@@ -563,33 +564,34 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			rows.Scan(&fileid, &filename, &folder, &desc, &createdt, &fileUser.Userid, &fileUser.Username)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
-			fmt.Fprintf(w, "<li>\n")
-			fmt.Fprintf(w, "<article class=\"content smallmargin-bottom\">\n")
-			filepath := filename
-			if folder != "" {
-				filepath = fmt.Sprintf("%s/%s", folder, filename)
-			}
-			fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filepath)
+			fmt.Fprintf(w, "<article class=\"content file-item\">\n")
+			//filepath := filename
+			//if folder != "" {
+			//	filepath = fmt.Sprintf("%s/%s", folder, filename)
+			//}
+			//fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filepath)
+			fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filename)
 			printFileByline(w, login, fileid, fileUser, tcreatedt)
 
-			ext := fileext(filename)
-			if ext == "png" || ext == "gif" || ext == "bmp" || ext == "jpg" || ext == "jpeg" {
-				fmt.Fprintf(w, "<p>\n")
-				fmt.Fprintf(w, "<a href=\"/file/%d\"><img class=\"thumbnail\" src=\"/file/%d\"></a>\n", fileid, fileid)
-				fmt.Fprintf(w, "</p>\n")
+			if showpreview != "n" && showpreview != "0" {
+				ext := fileext(filename)
+				if ext == "png" || ext == "gif" || ext == "bmp" || ext == "jpg" || ext == "jpeg" {
+					fmt.Fprintf(w, "<p>\n")
+					fmt.Fprintf(w, "<a href=\"/file/%d\"><img class=\"preview\" src=\"/file/%d\"></a>\n", fileid, fileid)
+					fmt.Fprintf(w, "</p>\n")
+				}
 			}
 
 			descMarkup := parseMarkdown(desc)
-			fmt.Fprintf(w, "<div class=\"smalltext smallmargin-top\">\n")
+			fmt.Fprintf(w, "<div class=\"file-desc\">\n")
 			fmt.Fprintf(w, descMarkup)
 			fmt.Fprintf(w, "</div>\n")
 
 			fmt.Fprintf(w, "</article>\n")
-			fmt.Fprintf(w, "</li>\n")
 
 			nrows++
 		}
-		fmt.Fprintf(w, "</ul>\n")
+		fmt.Fprintf(w, "</div>\n")
 
 		if int64(nrows) == limit {
 			fmt.Fprintf(w, "<p class=\"smalltext\">\n")

@@ -161,7 +161,32 @@ a {
     font-size: 1em;
 }
 
-img.thumbnail {
-    max-height: 100px;
+.file-browser {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
 }
+.file-item {
+    border: 1px solid #888;
+    padding: 0.2em;
+    flex-basis: 11em;
+}
+.file-item .heading {
+    font-size: 0.8em;
+    word-break: break-all;
+}
+.file-item img.preview {
+    max-width: 100%;
+}
+.file-item .file-desc {
+    font-size: 0.8em;
+    max-height: 5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.file-item .file-desc p {
+    padding: 0;
+    margin: 0;
+}
+
 
