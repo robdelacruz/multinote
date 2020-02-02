@@ -552,9 +552,34 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			limit = SETTINGS_LIMIT
 		}
 		showpreview := r.FormValue("showpreview")
+		outputfmt := r.FormValue("outputfmt")
+		if outputfmt == "" {
+			outputfmt = "table"
+		}
 
 		printPageHead(w)
 		printPageNav(w, r, db)
+
+		fmt.Fprintf(w, "<div class=\"filesheading\">\n")
+		fmt.Fprintf(w, "  <h1 class=\"heading\">Browse Files</h1>\n")
+		fmt.Fprintf(w, "  <form class=\"simpleform\" action=\"/browsefiles/\" method=\"get\">\n")
+		fmt.Fprintf(w, "  <div class=\"control row\">\n")
+		fmt.Fprintf(w, "    <label for=\"outputfmt\">View</label>\n")
+		fmt.Fprintf(w, "    <select id=\"outputfmt\" name=\"outputfmt\" onchange=\"this.form.submit();\">\n")
+		if outputfmt == "table" {
+			fmt.Fprintf(w, "      <option value=\"table\" selected>Table</option>\n")
+		} else {
+			fmt.Fprintf(w, "      <option value=\"table\">Table</option>\n")
+		}
+		if outputfmt == "grid" {
+			fmt.Fprintf(w, "      <option value=\"grid\" selected>Grid</option>\n")
+		} else {
+			fmt.Fprintf(w, "      <option value=\"grid\">Grid</option>\n")
+		}
+		fmt.Fprintf(w, "    </select>\n")
+		fmt.Fprintf(w, "  </div>\n")
+		fmt.Fprintf(w, "  </form>\n")
+		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"file-browser\">\n")
 		s := "SELECT file_id, filename, folder, desc, createdt, user.user_id, username FROM file LEFT OUTER JOIN user ON file.user_id = user.user_id ORDER BY createdt DESC LIMIT ? OFFSET ?"

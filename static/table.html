@@ -7,18 +7,27 @@
 <link rel="stylesheet" type="text/css" href="style.css">
 <style>
 table {
+    table-layout: fixed;
+    width: 100%;
     border-collapse: collapse;
 }
-thead th, thead td {
-    border: 1px solid;
-    padding: 0.2em 0.5em;
-    text-align: left;
+thead th {
+    border-bottom: 2px solid #555;
 }
-tbody th, tbody td {
-    border: 1px solid;
-    padding: 0.5em 0.5em;
+tbody tr {
+    border-bottom: 1px solid #333;
+}
+th, td {
+    padding: 0.5em 0.75em;
     text-align: left;
     vertical-align: top;
+}
+th.filename, td.filename {
+    word-break: break-all;
+    width: 10em;
+}
+th.desc, td.desc {
+    width: 15em;
 }
 table p {
     margin: 0;
@@ -26,47 +35,60 @@ table p {
 </style>
 </head>
 <body>
-
+<header class="masthead">
+    <nav class="navbar">
+        <div>
+            <h1><a href="#">Group Notes</a></h1>
+            <a href="notes.html">latest</a>
+            <a href="newnote.html">new note</a>
+        </div>
+        <div>
+            <span>robdelacruz</span>
+            <a href="login.html">logout</a>
+        </div>
+    </nav>
+    <p class="finetext">I reserve the right to be biased, it makes life more interesting.</p>
+</header>
 <table>
-<caption>Title of this Table</caption>
 <thead>
     <tr>
-        <th scope="col">Filename</th>
-        <th scope="col">Path</th>
-        <th scope="col">Description</th>
-        <th scope="col">Info</th>
+        <th scope="col" class="filename">Filename</th>
+        <th scope="col" class="path">Path</th>
+        <th scope="col" class="desc">Description</th>
+        <th scope="col" class="info">Uploader</th>
+        <th scope="col" class="action">Action</th>
     </tr>
 </thead>
 <tbody>
     <tr>
-        <th scope="row">
-            <p><a class="doc-title" href="https://images.computerhistory.org/revonline/images/500004894-03-01.jpg?w=600">plato_notes.jpg</a></p>
-            <ul class="line-menu finetext">
-                <li>1 Feb 2020</li>
-                <li>robdelacruz</li>
-                <li><a href="#">Edit</a></li>
-                <li><a href="#">Delete</a></li>
-            </ul>
-        </th>
-        <td>backup/</td>
-        <td><p>This is a screenshot of the classic Plato notes system.</p></td>
-        <td>
-            <ul class="line-menu finetext">
-                <li>1 Feb 2020</li>
-                <li>robdelacruz</li>
+        <td class="filename">
+            <a class="doc-title" href="https://images.computerhistory.org/revonline/images/500004894-03-01.jpg?w=600">plato_notes.jpg</a>
+        </td>
+        <td class="path">backup/</td>
+        <td class="desc"><p>This is a screenshot of the classic Plato notes system.</p></td>
+        <td class="info finetext">
+            robdelacruz<br>
+            1 Feb 2020
+        </td>
+        <td class="action finetext">
+            <ul class="line-menu">
                 <li><a href="#">Edit</a></li>
                 <li><a href="#">Delete</a></li>
             </ul>
         </td>
     </tr>
     <tr>
-        <th scope="row">plato_notes.jpg</th>
-        <td>backup/</td>
-        <td><p>This is a screenshot of the classic Plato notes system.</p></td>
-        <td>
-            <ul class="line-menu finetext">
-                <li>1 Feb 2020</li>
-                <li>robdelacruz</li>
+        <td class="filename">
+            <a class="doc-title" href="https://images.computerhistory.org/revonline/images/500004894-03-01.jpg?w=600">plato_notes.jpg</a>
+        </td>
+        <td class="path">backup/</td>
+        <td class="desc"><p>This is a screenshot of the classic Plato notes system.</p></td>
+        <td class="info finetext">
+            robdelacruz<br>
+            1 Feb 2020
+        </td>
+        <td class="action finetext">
+            <ul class="line-menu">
                 <li><a href="#">Edit</a></li>
                 <li><a href="#">Delete</a></li>
             </ul>
@@ -75,6 +97,9 @@ table p {
 </tbody>
 </table>
 
+<p class="smalltext">
+    <a href="#">More</a>
+</p>
 </body>
 </html>
 

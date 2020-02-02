@@ -143,6 +143,16 @@ a {
 .simpleform .control button {
     margin-right: 0.5em;
 }
+.simpleform .control.row {
+    display: flex;
+    flex-direction: row;
+}
+.simpleform .control.row label {
+    margin-right: 0.5em;
+}
+select {
+    padding: 0 0.5em;
+}
 .submit {
     font-weight: bold;
 }
@@ -159,6 +169,13 @@ a {
 }
 .content h1, .content h2, .content h3, .content h4 {
     font-size: 1em;
+}
+
+.filesheading {
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 .file-browser {
