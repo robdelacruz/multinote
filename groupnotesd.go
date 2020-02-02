@@ -530,6 +530,13 @@ func parseUrlFilepath(url string) (string, string) {
 	return path, name
 }
 
+func isFileExtImg(ext string) bool {
+	if ext == "png" || ext == "gif" || ext == "bmp" || ext == "jpg" || ext == "jpeg" {
+		return true
+	}
+	return false
+}
+
 func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		login := getLoginUser(r, db)
@@ -573,19 +580,22 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filename)
 			printFileByline(w, login, fileid, fileUser, tcreatedt)
 
-			if showpreview != "n" && showpreview != "0" {
-				ext := fileext(filename)
-				if ext == "png" || ext == "gif" || ext == "bmp" || ext == "jpg" || ext == "jpeg" {
-					fmt.Fprintf(w, "<p>\n")
-					fmt.Fprintf(w, "<a href=\"/file/%d\"><img class=\"preview\" src=\"/file/%d\"></a>\n", fileid, fileid)
-					fmt.Fprintf(w, "</p>\n")
-				}
-			}
+			ext := fileext(filename)
 
 			descMarkup := parseMarkdown(desc)
-			fmt.Fprintf(w, "<div class=\"file-desc\">\n")
+			if showpreview != "n" && showpreview != "0" && isFileExtImg(ext) {
+				fmt.Fprintf(w, "<div class=\"file-desc small\">\n")
+			} else {
+				fmt.Fprintf(w, "<div class=\"file-desc large\">\n")
+			}
 			fmt.Fprintf(w, descMarkup)
 			fmt.Fprintf(w, "</div>\n")
+
+			if showpreview != "n" && showpreview != "0" && isFileExtImg(ext) {
+				fmt.Fprintf(w, "<p>\n")
+				fmt.Fprintf(w, "<a href=\"/file/%d\"><img class=\"preview\" src=\"/file/%d\"></a>\n", fileid, fileid)
+				fmt.Fprintf(w, "</p>\n")
+			}
 
 			fmt.Fprintf(w, "</article>\n")
 
@@ -1754,11 +1764,14 @@ func printFileByline(w io.Writer, login User, fileid int64, fileUser User, tcrea
 	fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
 	fmt.Fprintf(w, "<li>%s</li>\n", createdt)
 	fmt.Fprintf(w, "<li>%s</li>\n", fileUser.Username)
+	fmt.Fprintf(w, "</ul>\n")
+
 	if fileUser.Userid == login.Userid || login.Userid == ADMIN_ID {
+		fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
 		fmt.Fprintf(w, "<li><a href=\"/editfile/?fileid=%d\">Update</a></li>\n", fileid)
 		fmt.Fprintf(w, "<li><a href=\"/delfile/?fileid=%d\">Delete</a></li>\n", fileid)
+		fmt.Fprintf(w, "</ul>\n")
 	}
-	fmt.Fprintf(w, "</ul>\n")
 }
 
 func printPageHead(w io.Writer) {
