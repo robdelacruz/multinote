@@ -551,7 +551,6 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if limit <= 0 {
 			limit = SETTINGS_LIMIT
 		}
-		showpreview := r.FormValue("showpreview")
 		outputfmt := r.FormValue("outputfmt")
 		if outputfmt == "" {
 			outputfmt = "table"
@@ -560,83 +559,136 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"filesheading\">\n")
-		fmt.Fprintf(w, "  <h1 class=\"heading\">Browse Files</h1>\n")
-		fmt.Fprintf(w, "  <form class=\"simpleform\" action=\"/browsefiles/\" method=\"get\">\n")
-		fmt.Fprintf(w, "  <div class=\"control row\">\n")
-		fmt.Fprintf(w, "    <label for=\"outputfmt\">View</label>\n")
-		fmt.Fprintf(w, "    <select id=\"outputfmt\" name=\"outputfmt\" onchange=\"this.form.submit();\">\n")
-		if outputfmt == "table" {
-			fmt.Fprintf(w, "      <option value=\"table\" selected>Table</option>\n")
-		} else {
-			fmt.Fprintf(w, "      <option value=\"table\">Table</option>\n")
-		}
+		fmtlink := "Grid"
+		fmtparam := "grid"
 		if outputfmt == "grid" {
-			fmt.Fprintf(w, "      <option value=\"grid\" selected>Grid</option>\n")
-		} else {
-			fmt.Fprintf(w, "      <option value=\"grid\">Grid</option>\n")
+			fmtlink = "Table"
+			fmtparam = "table"
 		}
-		fmt.Fprintf(w, "    </select>\n")
-		fmt.Fprintf(w, "  </div>\n")
-		fmt.Fprintf(w, "  </form>\n")
+		fmt.Fprintf(w, "<div class=\"flex-row\">\n")
+		fmt.Fprintf(w, "  <h1 class=\"heading\">Browse Files</h1>\n")
+		fmt.Fprintf(w, "  <a class=\"smalltext\" href=\"/browsefiles?offset=%d&limit=%d&outputfmt=%s\">View as %s</a>\n", offset, limit, fmtparam, fmtlink)
 		fmt.Fprintf(w, "</div>\n")
 
-		fmt.Fprintf(w, "<div class=\"file-browser\">\n")
 		s := "SELECT file_id, filename, folder, desc, createdt, user.user_id, username FROM file LEFT OUTER JOIN user ON file.user_id = user.user_id ORDER BY createdt DESC LIMIT ? OFFSET ?"
 		rows, err := db.Query(s, limit, offset)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		nrows := 0
-		for rows.Next() {
-			var fileid int64
-			var filename, folder, desc, createdt string
-			var fileUser User
-			rows.Scan(&fileid, &filename, &folder, &desc, &createdt, &fileUser.Userid, &fileUser.Username)
-			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
-			fmt.Fprintf(w, "<article class=\"content file-item\">\n")
-			//filepath := filename
-			//if folder != "" {
-			//	filepath = fmt.Sprintf("%s/%s", folder, filename)
-			//}
-			//fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filepath)
-			fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filename)
-			printFileByline(w, login, fileid, fileUser, tcreatedt)
-
-			ext := fileext(filename)
-
-			descMarkup := parseMarkdown(desc)
-			if showpreview != "n" && showpreview != "0" && isFileExtImg(ext) {
-				fmt.Fprintf(w, "<div class=\"file-desc small\">\n")
-			} else {
-				fmt.Fprintf(w, "<div class=\"file-desc large\">\n")
-			}
-			fmt.Fprintf(w, descMarkup)
-			fmt.Fprintf(w, "</div>\n")
-
-			if showpreview != "n" && showpreview != "0" && isFileExtImg(ext) {
-				fmt.Fprintf(w, "<p>\n")
-				fmt.Fprintf(w, "<a href=\"/file/%d\"><img class=\"preview\" src=\"/file/%d\"></a>\n", fileid, fileid)
-				fmt.Fprintf(w, "</p>\n")
-			}
-
-			fmt.Fprintf(w, "</article>\n")
-
-			nrows++
+		var nrows int
+		if outputfmt == "grid" {
+			nrows = printFilesGrid(w, rows, login)
+		} else {
+			nrows = printFilesTable(w, rows, login)
 		}
-		fmt.Fprintf(w, "</div>\n")
 
 		if int64(nrows) == limit {
 			fmt.Fprintf(w, "<p class=\"smalltext\">\n")
-			moreLink := fmt.Sprintf("/browsefiles?offset=%d&limit=%d", offset+limit, limit)
+			moreLink := fmt.Sprintf("/browsefiles?outputfmt=%s&offset=%d&limit=%d", outputfmt, offset+limit, limit)
 			fmt.Fprintf(w, "<a href=\"%s\">More</a>\n", moreLink)
 			fmt.Fprintf(w, "</p>\n")
 		}
 
 		printPageFoot(w)
 	}
+}
+
+func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login User) int {
+	fmt.Fprintf(w, "<div class=\"file-browser\">\n")
+	nrows := 0
+	for rows.Next() {
+		var fileid int64
+		var filename, folder, desc, createdt string
+		var fileUser User
+		rows.Scan(&fileid, &filename, &folder, &desc, &createdt, &fileUser.Userid, &fileUser.Username)
+		tcreatedt, _ := time.Parse(time.RFC3339, createdt)
+
+		fmt.Fprintf(w, "<article class=\"content file-item\">\n")
+		//filepath := filename
+		//if folder != "" {
+		//	filepath = fmt.Sprintf("%s/%s", folder, filename)
+		//}
+		//fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filepath)
+		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filename)
+		printFileByline(w, login, fileid, fileUser, tcreatedt)
+
+		ext := fileext(filename)
+
+		descMarkup := parseMarkdown(desc)
+		if isFileExtImg(ext) {
+			fmt.Fprintf(w, "<div class=\"file-desc small\">\n")
+		} else {
+			fmt.Fprintf(w, "<div class=\"file-desc large\">\n")
+		}
+		fmt.Fprintf(w, descMarkup)
+		fmt.Fprintf(w, "</div>\n")
+
+		if isFileExtImg(ext) {
+			fmt.Fprintf(w, "<p>\n")
+			fmt.Fprintf(w, "<a href=\"/file/%d\"><img class=\"preview\" src=\"/file/%d\"></a>\n", fileid, fileid)
+			fmt.Fprintf(w, "</p>\n")
+		}
+
+		fmt.Fprintf(w, "</article>\n")
+
+		nrows++
+	}
+	fmt.Fprintf(w, "</div>\n")
+
+	return nrows
+}
+
+func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User) int {
+	fmt.Fprintf(w, "<table class=\"table narrow\">\n")
+	fmt.Fprintf(w, "<thead>\n")
+	fmt.Fprintf(w, "    <tr>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"filename smalltext\">Filename</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"path smalltext\">Path</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"desc smalltext\">Description</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"info smalltext\">Uploader</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"action smalltext\">Action</th>\n")
+	fmt.Fprintf(w, "    </tr>\n")
+	fmt.Fprintf(w, "</thead>\n")
+	fmt.Fprintf(w, "<tbody>\n")
+	nrows := 0
+	for rows.Next() {
+		var fileid int64
+		var filename, folder, desc, createdt string
+		var fileUser User
+		rows.Scan(&fileid, &filename, &folder, &desc, &createdt, &fileUser.Userid, &fileUser.Username)
+		tcreatedt, _ := time.Parse(time.RFC3339, createdt)
+		screatedt := tcreatedt.Format("2 Jan 2006")
+
+		fmt.Fprintf(w, "  <tr>\n")
+		fmt.Fprintf(w, "    <td class=\"filename smalltext\">\n")
+		fmt.Fprintf(w, "      <a class=\"\" href=\"/file/%d\">%s</a>\n", fileid, filename)
+		fmt.Fprintf(w, "    </td>\n")
+		fmt.Fprintf(w, "    <td class=\"path finetext\">%s</td>\n", folder)
+
+		fmt.Fprintf(w, "    <td class=\"desc finetext\">\n")
+		fmt.Fprintf(w, "%s\n", parseMarkdown(desc))
+		fmt.Fprintf(w, "    </td>\n")
+
+		fmt.Fprintf(w, "    <td class=\"info finetext\">\n")
+		fmt.Fprintf(w, "      %s<br>\n", fileUser.Username)
+		fmt.Fprintf(w, "      %s\n", screatedt)
+		fmt.Fprintf(w, "    </td>\n")
+
+		fmt.Fprintf(w, "    <td class=\"action finetext\">\n")
+		fmt.Fprintf(w, "      <ul class=\"line-menu\">\n")
+		fmt.Fprintf(w, "        <li><a href=\"/editfile?fileid=%d\">Update</li>\n", fileid)
+		fmt.Fprintf(w, "        <li><a href=\"/delfile?fileid=%d\">Delete</li>\n", fileid)
+		fmt.Fprintf(w, "      </ul>\n")
+		fmt.Fprintf(w, "    </td>\n")
+		fmt.Fprintf(w, "  </tr>\n")
+		nrows++
+	}
+	fmt.Fprintf(w, "</tbody>\n")
+	fmt.Fprintf(w, "</table>\n")
+
+	return nrows
 }
 
 // Return filename extension. Ex. "image.png" returns "png", "file1" returns "".
