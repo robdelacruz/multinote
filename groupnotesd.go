@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -29,9 +30,50 @@ type User struct {
 func main() {
 	port := "8000"
 
-	db, err := sql.Open("sqlite3", "notes.db")
+	os.Args = os.Args[1:]
+	sw, parms := parseArgs(os.Args)
+
+	// [-i new_file]  Create and initialize new notes file
+	if sw["i"] != "" {
+		newnotesfile := sw["i"]
+		if fileExists(newnotesfile) {
+			s := fmt.Sprintf("File '%s' already exists. Can't initialize it.\n", newnotesfile)
+			fmt.Printf(s)
+			os.Exit(1)
+		}
+		createAndInitTables(newnotesfile)
+		os.Exit(0)
+	}
+
+	// Need to specify a notes file as first parameter.
+	if len(parms) == 0 {
+		s := `Usage:
+
+Start webservice using existing notes file:
+	groupnotesd <notes_file>
+
+Initialize new notes file:
+	groupnotesd -i <notes_file>
+
+`
+		fmt.Printf(s)
+		os.Exit(0)
+	}
+
+	// Exit if specified notes file doesn't exist.
+	notesfile := parms[0]
+	if !fileExists(notesfile) {
+		s := fmt.Sprintf(`Notes file '%s' doesn't exist. Create one using:
+	groupnotesd -i <notes_file>
+`, notesfile)
+		fmt.Printf(s)
+		os.Exit(1)
+	}
+
+	db, err := sql.Open("sqlite3", notesfile)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Error opening '%s' (%s)\n", notesfile, err)
+		os.Exit(1)
 	}
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
@@ -59,6 +101,105 @@ func main() {
 	fmt.Printf("Listening on %s...\n", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	log.Fatal(err)
+}
+
+func parseArgs(args []string) (map[string]string, []string) {
+	switches := map[string]string{}
+	parms := []string{}
+
+	standaloneSwitches := []string{}
+	definitionSwitches := []string{"i"}
+	fNoMoreSwitches := false
+	curKey := ""
+
+	for _, arg := range args {
+		if fNoMoreSwitches {
+			// any arg after "--" is a standalone parameter
+			parms = append(parms, arg)
+		} else if arg == "--" {
+			// "--" means no more switches to come
+			fNoMoreSwitches = true
+		} else if strings.HasPrefix(arg, "--") {
+			switches[arg[2:]] = "y"
+			curKey = ""
+		} else if strings.HasPrefix(arg, "-") {
+			if listContains(definitionSwitches, arg[1:]) {
+				// -a "val"
+				curKey = arg[1:]
+				continue
+			}
+			for _, ch := range arg[1:] {
+				// -a, -b, -ab
+				sch := string(ch)
+				if listContains(standaloneSwitches, sch) {
+					switches[sch] = "y"
+				}
+			}
+		} else if curKey != "" {
+			switches[curKey] = arg
+			curKey = ""
+		} else {
+			// standalone parameter
+			parms = append(parms, arg)
+		}
+	}
+
+	return switches, parms
+}
+
+func listContains(ss []string, v string) bool {
+	for _, s := range ss {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
+func fileExists(file string) bool {
+	_, err := os.Stat(file)
+	if err != nil && os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func createAndInitTables(newfile string) {
+	if fileExists(newfile) {
+		s := fmt.Sprintf("File '%s' already exists. Can't initialize it.\n", newfile)
+		fmt.Printf(s)
+		os.Exit(1)
+	}
+
+	db, err := sql.Open("sqlite3", newfile)
+	if err != nil {
+		fmt.Printf("Error opening '%s' (%s)\n", newfile, err)
+		os.Exit(1)
+	}
+
+	ss := []string{
+		"BEGIN TRANSACTION;",
+		"DROP TABLE IF EXISTS notereply;",
+		"DROP TABLE IF EXISTS note;",
+		"DROP TABLE IF EXISTS file;",
+		"CREATE TABLE note (note_id INTEGER PRIMARY KEY NOT NULL, title TEXT, body TEXT, createdt TEXT, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES user);",
+		"CREATE TABLE notereply (notereply_id INTEGER PRIMARY KEY NOT NULL, note_id INTEGER, replybody TEXT, createdt TEXT, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES user, FOREIGN KEY(note_id) REFERENCES note);",
+		"CREATE TABLE file (file_id INTEGER PRIMARY KEY NOT NULL, filename TEXT, folder TEXT, desc TEXT, content BLOB, createdt TEXT, user_id INTEGER, FOREIGN KEY(user_id) REFERENCES user);",
+		"DROP TABLE IF EXISTS user;",
+		"CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password TEXT, CONSTRAINT unique_username UNIQUE (username));",
+		"DROP TABLE IF EXISTS site;",
+		"CREATE TABLE site (site_id INTEGER PRIMARY KEY NOT NULL, title TEXT, desc TEXT);",
+		"INSERT INTO user (user_id, username, password) VALUES (1, 'admin', '');",
+		"COMMIT;",
+	}
+
+	for _, s := range ss {
+		_, err := sqlstmt(db, s).Exec()
+		if err != nil {
+			log.Printf("DB error setting up notes db on '%s' (%s)\n", newfile, err)
+			os.Exit(1)
+		}
+	}
 }
 
 func parseNoteid(url string) int64 {

@@ -87,5 +87,5 @@ INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (5, 'third 
 INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (6, 'a comment!', '2019-12-05T14:00:00+08:00', 3);
 INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (6, 'another comment!', '2019-12-05T14:00:00+08:00', 3);
 
-END TRANSACTION;
+COMMIT;
 
