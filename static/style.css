@@ -197,16 +197,19 @@ select {
 
 th.filename, td.filename {
     word-break: break-all;
-    width: 10em;
+    width: 35%;
+}
+th.path, td.path {
+    width: 15%;
 }
 th.desc, td.desc {
-    width: 15em;
+    width: 25%;
 }
 th.info, td.info {
-    width: 5em;
+    width: 12%;
 }
 th.action, td.action {
-    width: 6em;
+    width: 13%;
 }
 
 .flex-row {

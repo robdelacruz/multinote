@@ -851,7 +851,7 @@ func uploadFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label for=\"desc\">description</label>\n")
-		fmt.Fprintf(w, "<textarea id=\"desc\" name=\"desc\" rows=\"25\" cols=\"80\">%s</textarea>\n", desc)
+		fmt.Fprintf(w, "<textarea id=\"desc\" name=\"desc\" rows=\"5\" cols=\"50\">%s</textarea>\n", desc)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -949,7 +949,7 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				}
 
 				// Successfully updated file.
-				http.Redirect(w, r, fmt.Sprintf("/"), http.StatusSeeOther)
+				http.Redirect(w, r, fmt.Sprintf("/browsefiles/"), http.StatusSeeOther)
 				return
 			}
 		}
@@ -988,7 +988,7 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label for=\"desc\">description</label>\n")
-		fmt.Fprintf(w, "<textarea id=\"desc\" name=\"desc\" rows=\"25\" cols=\"80\">%s</textarea>\n", desc)
+		fmt.Fprintf(w, "<textarea id=\"desc\" name=\"desc\" rows=\"5\" cols=\"50\">%s</textarea>\n", desc)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -1049,7 +1049,7 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				}
 
 				// Successfully deleted file.
-				http.Redirect(w, r, fmt.Sprintf("/"), http.StatusSeeOther)
+				http.Redirect(w, r, fmt.Sprintf("/browsefiles/"), http.StatusSeeOther)
 				return
 			}
 		}
