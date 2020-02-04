@@ -1,7 +1,14 @@
 notes - Inspired by PLATO Notes.
 
-http://thinkofit.com/plato/dwplato.htm
+Additional functionality to consider adding:
+- search notes/files
+- deactivate user
+- (site settings page) add help text textarea for login page
+- allow anonymous replies?
+- option to only show notes/files for logged in users
 
+Plato Notes background
+http://thinkofit.com/plato/dwplato.htm
 ---
 Every note or response appeared on its own screen. Since PLATO was designed for education, its architecture was biased toward carefully crafted full-screen displays. It was easy to place text or graphics at specific locations on the screen, but nearly impossible to scroll text. For Notes, this was both an advantage and a drawback. One nice feature was that the note title, date, time, and author's name always appeared in the same place. After using Notes for a while, your eye "knew" exactly where to look for these things.
 
@@ -16,29 +23,4 @@ skip to the next base note
 begin writing a new response
 There were too many options to list them all on every screen. Most prompts were quite minimal, but a Help key was universally available. It would display a complete list of the options available at any point.
 ---
-
-To upload files:
-<form method="post" action="." enctype="multipart/form-data">
-  <input type="file" name="file">
-</form>
-
-func FileHandler(w, r) {
-    file, header := r.FormFile("file")
-    defer file.Close()
-
-    filename := header.Filename
-    bs, e := ioutil.ReadAll(file)
-
-    // Insert bytes bs to blob column.
-}
-
-Other functions needed:
-- search notes/files
-- deactivate user
-- (site settings page) add help text textarea for login page
-- allow anonymous replies?
-- option to only show notes/files for logged in users
-
-
-
 
