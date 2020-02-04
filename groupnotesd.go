@@ -77,11 +77,11 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		w.Header().Set("Content-Type", "text/html")
 
-		offset := int64(atoi(r.FormValue("offset")))
+		offset := atoi(r.FormValue("offset"))
 		if offset <= 0 {
 			offset = 0
 		}
-		limit := int64(atoi(r.FormValue("limit")))
+		limit := atoi(r.FormValue("limit"))
 		if limit <= 0 {
 			limit = SETTINGS_LIMIT
 		}
@@ -121,12 +121,8 @@ LIMIT ? OFFSET ?`
 		}
 		fmt.Fprintf(w, "</ul>\n")
 
-		if int64(nrows) == limit {
-			fmt.Fprintf(w, "<p class=\"smalltext\">\n")
-			moreLink := fmt.Sprintf("/?offset=%d&limit=%d", offset+limit, limit)
-			fmt.Fprintf(w, "<a href=\"%s\">More</a>\n", moreLink)
-			fmt.Fprintf(w, "</p>\n")
-		}
+		// Previous and More links
+		printPagingNav(w, "/?", offset, limit, nrows)
 
 		printPageFoot(w)
 	}
@@ -543,11 +539,11 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		w.Header().Set("Content-Type", "text/html")
 
-		offset := int64(atoi(r.FormValue("offset")))
+		offset := atoi(r.FormValue("offset"))
 		if offset <= 0 {
 			offset = 0
 		}
-		limit := int64(atoi(r.FormValue("limit")))
+		limit := atoi(r.FormValue("limit"))
 		if limit <= 0 {
 			limit = SETTINGS_LIMIT
 		}
@@ -585,22 +581,7 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		// Previous and More links
-		fmt.Fprintf(w, "<div class=\"flex-row italic smalltext\">\n")
-		if offset > 0 {
-			prevOffset := offset - limit
-			if prevOffset < 0 {
-				prevOffset = 0
-			}
-			prevLink := fmt.Sprintf("/browsefiles?outputfmt=%s&offset=%d&limit=%d", outputfmt, prevOffset, limit)
-			fmt.Fprintf(w, "  <p><a href=\"%s\">Previous</a></p>\n", prevLink)
-		} else {
-			fmt.Fprintf(w, "  <p></p>\n")
-		}
-		if int64(nrows) == limit {
-			moreLink := fmt.Sprintf("/browsefiles?outputfmt=%s&offset=%d&limit=%d", outputfmt, offset+limit, limit)
-			fmt.Fprintf(w, "  <p><a href=\"%s\">More</a></p>\n", moreLink)
-		}
-		fmt.Fprintf(w, "</div>\n")
+		printPagingNav(w, fmt.Sprintf("/browsefiles?outputfmt=%s", outputfmt), offset, limit, nrows)
 
 		printPageFoot(w)
 	}
@@ -1937,6 +1918,25 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Site description line
 	fmt.Fprintf(w, "<p class=\"finetext\">%s</p>\n", desc)
 	fmt.Fprintf(w, "</header>\n")
+}
+
+func printPagingNav(w http.ResponseWriter, baseurl string, offset, limit, nrows int) {
+	fmt.Fprintf(w, "<div class=\"flex-row italic smalltext\">\n")
+	if offset > 0 {
+		prevOffset := offset - limit
+		if prevOffset < 0 {
+			prevOffset = 0
+		}
+		prevLink := fmt.Sprintf("%s&offset=%d&limit=%d", baseurl, prevOffset, limit)
+		fmt.Fprintf(w, "  <p><a href=\"%s\">Previous</a></p>\n", prevLink)
+	} else {
+		fmt.Fprintf(w, "  <p></p>\n")
+	}
+	if nrows == limit {
+		moreLink := fmt.Sprintf("%s&offset=%d&limit=%d", baseurl, offset+limit, limit)
+		fmt.Fprintf(w, "  <p><a href=\"%s\">More</a></p>\n", moreLink)
+	}
+	fmt.Fprintf(w, "</div>\n")
 }
 
 func getLoginUser(r *http.Request, db *sql.DB) User {
