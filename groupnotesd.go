@@ -194,7 +194,7 @@ func createAndInitTables(newfile string) {
 	}
 
 	for _, s := range ss {
-		_, err := sqlstmt(db, s).Exec()
+		_, err := sqlexec(db, s)
 		if err != nil {
 			log.Printf("DB error setting up notes db on '%s' (%s)\n", newfile, err)
 			os.Exit(1)
@@ -409,7 +409,7 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			createdt := time.Now().Format(time.RFC3339)
 
 			s := "INSERT INTO note (title, body, createdt, user_id) VALUES (?, ?, ?, ?);"
-			_, err := sqlstmt(db, s).Exec(title, body, createdt, login.Userid)
+			_, err := sqlexec(db, s, title, body, createdt, login.Userid)
 			if err != nil {
 				log.Printf("DB error creating note: %s\n", err)
 				errmsg = "A problem occured. Please try again."
@@ -500,7 +500,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			body = strings.ReplaceAll(body, "\r", "")
 
 			s := "UPDATE note SET title = ?, body = ?, createdt = ? WHERE note_id = ?"
-			_, err = sqlstmt(db, s).Exec(title, body, createdt, noteid)
+			_, err = sqlexec(db, s, title, body, createdt, noteid)
 			if err != nil {
 				log.Printf("DB error updating noteid %d: %s\n", noteid, err)
 				errmsg = "A problem occured. Please try again."
@@ -586,7 +586,7 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			for {
 				// Delete note replies
 				s = "DELETE FROM notereply WHERE note_id = ?"
-				_, err = sqlstmt(db, s).Exec(noteid)
+				_, err = sqlexec(db, s, noteid)
 				if err != nil {
 					log.Printf("DB error deleting notereplies of noteid %d: %s\n", noteid, err)
 					errmsg = "A problem occured. Please try again."
@@ -595,7 +595,7 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 				// Delete note
 				s := "DELETE FROM note WHERE note_id = ?"
-				_, err = sqlstmt(db, s).Exec(noteid)
+				_, err = sqlexec(db, s, noteid)
 				if err != nil {
 					log.Printf("DB error deleting noteid %d: %s\n", noteid, err)
 					errmsg = "A problem occured. Please try again."
@@ -938,7 +938,7 @@ func uploadFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				}
 
 				s := "INSERT INTO file (filename, folder, desc, content, createdt, user_id) VALUES (?, ?, ?, ?, ?, ?);"
-				_, err = sqlstmt(db, s).Exec(filename, folder, desc, bsContent, createdt, login.Userid)
+				_, err = sqlexec(db, s, filename, folder, desc, bsContent, createdt, login.Userid)
 				if err != nil {
 					log.Printf("uploadfile: DB error inserting file: %s\n", err)
 					errmsg = "A problem occured. Please try again."
@@ -1092,10 +1092,10 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 						break
 					}
 					s := "UPDATE file SET filename = ?, folder = ?, desc = ?, content = ? WHERE file_id = ?"
-					_, err = sqlstmt(db, s).Exec(filename, folder, desc, bsContent, fileid)
+					_, err = sqlexec(db, s, filename, folder, desc, bsContent, fileid)
 				} else {
 					s := "UPDATE file SET filename = ?, folder = ?, desc = ? WHERE file_id = ?"
-					_, err = sqlstmt(db, s).Exec(filename, folder, desc, fileid)
+					_, err = sqlexec(db, s, filename, folder, desc, fileid)
 				}
 				if err != nil {
 					log.Printf("editfile: DB error updating file: %s\n", err)
@@ -1209,7 +1209,7 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if r.Method == "POST" {
 			for {
 				s := "DELETE FROM file WHERE file_id = ?"
-				_, err = sqlstmt(db, s).Exec(fileid)
+				_, err = sqlexec(db, s, fileid)
 				if err != nil {
 					log.Printf("del file: DB error deleting file: %s\n", err)
 					errmsg = "A problem occured. Please try again."
@@ -1288,7 +1288,7 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			createdt := time.Now().Format(time.RFC3339)
 
 			s := "INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (?, ?, ?, ?)"
-			_, err := sqlstmt(db, s).Exec(noteid, replybody, createdt, login.Userid)
+			_, err := sqlexec(db, s, noteid, replybody, createdt, login.Userid)
 			if err != nil {
 				log.Printf("DB error creating reply: %s\n", err)
 				errmsg = "A problem occured. Please try again."
@@ -1371,7 +1371,7 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			replybody = strings.ReplaceAll(replybody, "\r", "") // CRLF => CR
 
 			s := "UPDATE notereply SET replybody = ? WHERE notereply_id = ?"
-			_, err = sqlstmt(db, s).Exec(replybody, replyid)
+			_, err = sqlexec(db, s, replybody, replyid)
 			if err != nil {
 				log.Printf("DB error updating replyid %d: %s\n", replyid, err)
 				errmsg = "A problem occured. Please try again."
@@ -1451,7 +1451,7 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		if r.Method == "POST" {
 			s := "DELETE FROM notereply WHERE notereply_id = ?"
-			_, err = sqlstmt(db, s).Exec(replyid)
+			_, err = sqlexec(db, s, replyid)
 			if err != nil {
 				log.Printf("DB error deleting replyid %d: %s\n", replyid, err)
 				errmsg = "A problem occured. Please try again."
@@ -1685,7 +1685,7 @@ func newUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 				hashedPassword := hashPassword(password)
 				s := "INSERT INTO user (username, password) VALUES (?, ?);"
-				_, err := sqlstmt(db, s).Exec(username, hashedPassword)
+				_, err := sqlexec(db, s, username, hashedPassword)
 				if err != nil {
 					log.Printf("DB error creating user: %s\n", err)
 					errmsg = "A problem occured. Please try again."
@@ -1777,7 +1777,7 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				var err error
 				if setpwd == "" {
 					s := "UPDATE user SET username = ? WHERE user_id = ?"
-					_, err = sqlstmt(db, s).Exec(username, userid)
+					_, err = sqlexec(db, s, username, userid)
 				} else {
 					// ?setpwd=1 to set new password
 					password = r.FormValue("password")
@@ -1790,7 +1790,7 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 					}
 					hashedPassword := hashPassword(password)
 					s := "UPDATE user SET username = ?, password = ? WHERE user_id = ?"
-					_, err = sqlstmt(db, s).Exec(username, hashedPassword, userid)
+					_, err = sqlexec(db, s, username, hashedPassword, userid)
 				}
 				if err != nil {
 					log.Printf("DB error updating user: %s\n", err)
@@ -1872,7 +1872,7 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 			for {
 				s := "INSERT OR REPLACE INTO site (site_id, title, desc) VALUES (1, ?, ?)"
-				_, err = sqlstmt(db, s).Exec(title, desc)
+				_, err = sqlexec(db, s, title, desc)
 				if err != nil {
 					log.Printf("DB error updating site settings: %s\n", err)
 					errmsg = "A problem occured. Please try again."
@@ -2206,4 +2206,10 @@ func sqlstmt(db *sql.DB, s string) *sql.Stmt {
 		log.Fatalf("db.Prepare() sql: '%s'\nerror: '%s'", s, err)
 	}
 	return stmt
+}
+
+func sqlexec(db *sql.DB, s string, pp ...interface{}) (sql.Result, error) {
+	stmt := sqlstmt(db, s)
+	defer stmt.Close()
+	return stmt.Exec(pp...)
 }
