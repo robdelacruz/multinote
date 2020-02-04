@@ -584,12 +584,23 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			nrows = printFilesTable(w, rows, login)
 		}
 
-		if int64(nrows) == limit {
-			fmt.Fprintf(w, "<p class=\"smalltext\">\n")
-			moreLink := fmt.Sprintf("/browsefiles?outputfmt=%s&offset=%d&limit=%d", outputfmt, offset+limit, limit)
-			fmt.Fprintf(w, "<a href=\"%s\">More</a>\n", moreLink)
-			fmt.Fprintf(w, "</p>\n")
+		// Previous and More links
+		fmt.Fprintf(w, "<div class=\"flex-row italic smalltext\">\n")
+		if offset > 0 {
+			prevOffset := offset - limit
+			if prevOffset < 0 {
+				prevOffset = 0
+			}
+			prevLink := fmt.Sprintf("/browsefiles?outputfmt=%s&offset=%d&limit=%d", outputfmt, prevOffset, limit)
+			fmt.Fprintf(w, "  <p><a href=\"%s\">Previous</a></p>\n", prevLink)
+		} else {
+			fmt.Fprintf(w, "  <p></p>\n")
 		}
+		if int64(nrows) == limit {
+			moreLink := fmt.Sprintf("/browsefiles?outputfmt=%s&offset=%d&limit=%d", outputfmt, offset+limit, limit)
+			fmt.Fprintf(w, "  <p><a href=\"%s\">More</a></p>\n", moreLink)
+		}
+		fmt.Fprintf(w, "</div>\n")
 
 		printPageFoot(w)
 	}
@@ -606,11 +617,6 @@ func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login User) int {
 		tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
 		fmt.Fprintf(w, "<article class=\"content file-item\">\n")
-		//filepath := filename
-		//if folder != "" {
-		//	filepath = fmt.Sprintf("%s/%s", folder, filename)
-		//}
-		//fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filepath)
 		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filename)
 		printFileByline(w, login, fileid, fileUser, tcreatedt)
 
@@ -662,7 +668,7 @@ func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User) int {
 		screatedt := tcreatedt.Format("2 Jan 2006")
 
 		fmt.Fprintf(w, "  <tr>\n")
-		fmt.Fprintf(w, "    <td class=\"filename smalltext\">\n")
+		fmt.Fprintf(w, "    <td class=\"filename doc-title smalltext\">\n")
 		fmt.Fprintf(w, "      <a class=\"\" href=\"/file/%d\">%s</a>\n", fileid, filename)
 		fmt.Fprintf(w, "    </td>\n")
 		fmt.Fprintf(w, "    <td class=\"path finetext\">%s</td>\n", folder)
