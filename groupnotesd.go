@@ -574,10 +574,11 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		var nrows int
+		qparams := fmt.Sprintf("offset=%d&limit=%d&outputfmt=%s", offset, limit, outputfmt)
 		if outputfmt == "grid" {
-			nrows = printFilesGrid(w, rows, login)
+			nrows = printFilesGrid(w, rows, login, qparams)
 		} else {
-			nrows = printFilesTable(w, rows, login)
+			nrows = printFilesTable(w, rows, login, qparams)
 		}
 
 		// Previous and More links
@@ -587,7 +588,7 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login User) int {
+func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login User, qparams string) int {
 	fmt.Fprintf(w, "<div class=\"file-browser\">\n")
 	nrows := 0
 	for rows.Next() {
@@ -599,7 +600,7 @@ func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login User) int {
 
 		fmt.Fprintf(w, "<article class=\"content file-item\">\n")
 		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filename)
-		printFileByline(w, login, fileid, fileUser, tcreatedt)
+		printFileByline(w, login, fileid, fileUser, tcreatedt, qparams)
 
 		ext := fileext(filename)
 
@@ -627,7 +628,7 @@ func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login User) int {
 	return nrows
 }
 
-func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User) int {
+func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User, qparams string) int {
 	fmt.Fprintf(w, "<table class=\"table narrow\">\n")
 	fmt.Fprintf(w, "<thead>\n")
 	fmt.Fprintf(w, "    <tr>\n")
@@ -665,8 +666,8 @@ func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User) int {
 
 		fmt.Fprintf(w, "    <td class=\"action finetext\">\n")
 		fmt.Fprintf(w, "      <ul class=\"line-menu\">\n")
-		fmt.Fprintf(w, "        <li><a href=\"/editfile?fileid=%d\">Update</li>\n", fileid)
-		fmt.Fprintf(w, "        <li><a href=\"/delfile?fileid=%d\">Delete</li>\n", fileid)
+		fmt.Fprintf(w, "        <li><a href=\"/editfile?fileid=%d&%s\">Update</li>\n", fileid, qparams)
+		fmt.Fprintf(w, "        <li><a href=\"/delfile?fileid=%d&%s\">Delete</li>\n", fileid, qparams)
 		fmt.Fprintf(w, "      </ul>\n")
 		fmt.Fprintf(w, "    </td>\n")
 		fmt.Fprintf(w, "  </tr>\n")
@@ -873,6 +874,19 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
+		offset := atoi(r.FormValue("offset"))
+		if offset <= 0 {
+			offset = 0
+		}
+		limit := atoi(r.FormValue("limit"))
+		if limit <= 0 {
+			limit = SETTINGS_LIMIT
+		}
+		outputfmt := r.FormValue("outputfmt")
+		if outputfmt == "" {
+			outputfmt = "table"
+		}
+
 		login := getLoginUser(r, db)
 		if login.Userid == -1 {
 			log.Printf("edit file: no user logged in\n")
@@ -949,7 +963,7 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				}
 
 				// Successfully updated file.
-				http.Redirect(w, r, fmt.Sprintf("/browsefiles/"), http.StatusSeeOther)
+				http.Redirect(w, r, fmt.Sprintf("/browsefiles?offset=%d&limit=%d&outputfmt=%s", offset, limit, outputfmt), http.StatusSeeOther)
 				return
 			}
 		}
@@ -958,7 +972,7 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/editfile/?fileid=%d\" method=\"post\" enctype=\"multipart/form-data\">\n", fileid)
+		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/editfile/?fileid=%d&offset=%d&limit=%d&outputfmt=%s\" method=\"post\" enctype=\"multipart/form-data\">\n", fileid, offset, limit, outputfmt)
 		fmt.Fprintf(w, "<h1 class=\"heading\">Edit File</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -1010,6 +1024,19 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
+		offset := atoi(r.FormValue("offset"))
+		if offset <= 0 {
+			offset = 0
+		}
+		limit := atoi(r.FormValue("limit"))
+		if limit <= 0 {
+			limit = SETTINGS_LIMIT
+		}
+		outputfmt := r.FormValue("outputfmt")
+		if outputfmt == "" {
+			outputfmt = "table"
+		}
+
 		login := getLoginUser(r, db)
 		if login.Userid == -1 {
 			log.Printf("del file: no user logged in\n")
@@ -1049,7 +1076,7 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				}
 
 				// Successfully deleted file.
-				http.Redirect(w, r, fmt.Sprintf("/browsefiles/"), http.StatusSeeOther)
+				http.Redirect(w, r, fmt.Sprintf("/browsefiles?offset=%d&limit=%d&outputfmt=%s", offset, limit, outputfmt), http.StatusSeeOther)
 				return
 			}
 		}
@@ -1058,7 +1085,7 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/delfile/?fileid=%d\" method=\"post\" enctype=\"multipart/form-data\">\n", fileid)
+		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/delfile/?fileid=%d&offset=%d&limit=%d&outputfmt=%s\" method=\"post\" enctype=\"multipart/form-data\">\n", fileid, offset, limit, outputfmt)
 		fmt.Fprintf(w, "<h1 class=\"heading warning\">Delete File</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -1083,7 +1110,7 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label for=\"desc\">description</label>\n")
-		fmt.Fprintf(w, "<textarea id=\"desc\" name=\"desc\" rows=\"25\" cols=\"80\" readonly>%s</textarea>\n", desc)
+		fmt.Fprintf(w, "<textarea id=\"desc\" name=\"desc\" rows=\"5\" cols=\"50\" readonly>%s</textarea>\n", desc)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -1823,7 +1850,7 @@ func printByline(w io.Writer, login User, noteid int64, noteUser User, tcreatedt
 	fmt.Fprintf(w, "</ul>\n")
 }
 
-func printFileByline(w io.Writer, login User, fileid int64, fileUser User, tcreatedt time.Time) {
+func printFileByline(w io.Writer, login User, fileid int64, fileUser User, tcreatedt time.Time, qparams string) {
 	createdt := tcreatedt.Format("2 Jan 2006")
 	fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
 	fmt.Fprintf(w, "<li>%s</li>\n", createdt)
@@ -1832,8 +1859,8 @@ func printFileByline(w io.Writer, login User, fileid int64, fileUser User, tcrea
 
 	if fileUser.Userid == login.Userid || login.Userid == ADMIN_ID {
 		fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
-		fmt.Fprintf(w, "<li><a href=\"/editfile/?fileid=%d\">Update</a></li>\n", fileid)
-		fmt.Fprintf(w, "<li><a href=\"/delfile/?fileid=%d\">Delete</a></li>\n", fileid)
+		fmt.Fprintf(w, "<li><a href=\"/editfile/?fileid=%d&%s\">Update</a></li>\n", fileid, qparams)
+		fmt.Fprintf(w, "<li><a href=\"/delfile/?fileid=%d&%s\">Delete</a></li>\n", fileid, qparams)
 		fmt.Fprintf(w, "</ul>\n")
 	}
 }
