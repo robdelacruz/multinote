@@ -791,10 +791,17 @@ func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User, qparams 
 		screatedt := tcreatedt.Format("2 Jan 2006")
 
 		fmt.Fprintf(w, "  <tr>\n")
-		fmt.Fprintf(w, "    <td class=\"filename doc-title smalltext\">\n")
-		fmt.Fprintf(w, "      <a class=\"\" href=\"/file/%d\">%s</a>\n", fileid, filename)
-		fmt.Fprintf(w, "    </td>\n")
-		fmt.Fprintf(w, "    <td class=\"path finetext\">%s</td>\n", folder)
+
+		if folder != "" {
+			fmt.Fprintf(w, "    <td class=\"filename doc-title smalltext\">\n")
+			fmt.Fprintf(w, "      <a class=\"\" href=\"/file/%d\">%s</a>\n", fileid, filename)
+			fmt.Fprintf(w, "    </td>\n")
+			fmt.Fprintf(w, "    <td class=\"path finetext\">%s</td>\n", folder)
+		} else {
+			fmt.Fprintf(w, "    <td colspan=\"2\" class=\"filename doc-title smalltext\">\n")
+			fmt.Fprintf(w, "      <a class=\"\" href=\"/file/%d\">%s</a>\n", fileid, filename)
+			fmt.Fprintf(w, "    </td>\n")
+		}
 
 		fmt.Fprintf(w, "    <td class=\"desc finetext\">\n")
 		fmt.Fprintf(w, "%s\n", parseMarkdown(desc))

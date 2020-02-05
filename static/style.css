@@ -223,6 +223,7 @@ th.action, td.action {
     display: flex;
     flex-wrap: wrap;
     flex-direction: row;
+    justify-content: space-between;
 }
 .file-item {
     border: 1px solid #888;
@@ -231,10 +232,13 @@ th.action, td.action {
     width: 200px;
     height: 200px;
     overflow: hidden;
+    margin-bottom: 1em;
 }
 .file-item .heading {
     font-size: 0.8em;
     word-break: break-all;
+    max-height: 1em;
+    overflow: hidden;
 }
 .file-item img.preview {
     max-width: 100%;
@@ -252,7 +256,7 @@ th.action, td.action {
     max-height: 100%;
 }
 .file-desc.small {
-    max-height: 1.5em;
+    max-height: 1.2em;
 }
 
 
