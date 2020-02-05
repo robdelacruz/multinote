@@ -12,12 +12,12 @@ License:
 
 ## Build and Install
 
-  $ make dep
-  $ sqlite3 notes.db < create_tables.sql
-  $ make
-  $ ./groupnotesd -i notes.db
+    $ make dep
+    $ sqlite3 notes.db < create_tables.sql
+    $ make
+    $ ./groupnotesd -i notes.db
 
-  Run 'groupnotesd <notes_file>' to start the web service.
+    Run 'groupnotesd <notes_file>' to start the web service.
 
 groupnotes uses a single sqlite3 database file to store all notes, uploaded files, users, and site settings.
 
