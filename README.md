@@ -30,6 +30,6 @@ groupnotes uses a single sqlite3 database file to store all notes, uploaded file
 ![files gallery](screenshots/files_gridview.png)
 
 ## Contact
-  Twitter: @robdelacruz
-  Source: http://github.com/robdelacruz/groupnotes
+Twitter: @robdelacruz
+Source: http://github.com/robdelacruz/groupnotes
 
