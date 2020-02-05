@@ -1,19 +1,23 @@
-## notes - Barebones group notes website. Inspired by PLATO Notes.
+## groupnotes
 
-Still in development.
+A barebones group notes website. Inspired by PLATO Notes.
+
+- Add and edit notes with images.
+- Upload files.
+- Reply to notes.
+- Multiple users.
 
 License:
   MIT
 
-## Manual
+## Build and Install
 
-Build and Install
------------------
   $ make dep
   $ sqlite3 notes.db < create_tables.sql
   $ make
+  $ ./groupnotesd -i notes.db
 
-  Run 'groupnotes' to start the web service.
+  Run 'groupnotesd <notes_file>' to start the web service.
 
 groupnotes uses a single sqlite3 database file to store all notes, uploaded files, users, and site settings.
 
