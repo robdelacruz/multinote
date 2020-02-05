@@ -19,11 +19,11 @@ groupnotes uses a single sqlite3 database file to store all notes, uploaded file
 
 ## Screenshots
 
-[notes list](screenshots/note_list.png)
-[note text](screenshots/note_text.png)
-[note with image](screenshots/note_with_image.png)
-[note editor](screenshots/note_edit.png)
-[files gallery](screenshots/files_gridview.png)
+![notes list](screenshots/note_list.png)
+![note text](screenshots/note_text.png)
+![note with image](screenshots/note_with_image.png)
+![note editor](screenshots/note_edit.png)
+![files gallery](screenshots/files_gridview.png)
 
 ## Contact
   Twitter: @robdelacruz
