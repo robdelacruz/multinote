@@ -774,8 +774,6 @@ func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User, qparams 
 	fmt.Fprintf(w, "<thead>\n")
 	fmt.Fprintf(w, "    <tr>\n")
 	fmt.Fprintf(w, "        <th scope=\"col\" class=\"filename smalltext\">Filename</th>\n")
-	fmt.Fprintf(w, "        <th scope=\"col\" class=\"path smalltext\">Path</th>\n")
-	fmt.Fprintf(w, "        <th scope=\"col\" class=\"desc smalltext\">Description</th>\n")
 	fmt.Fprintf(w, "        <th scope=\"col\" class=\"info smalltext\">Uploader</th>\n")
 	fmt.Fprintf(w, "        <th scope=\"col\" class=\"action smalltext\">Action</th>\n")
 	fmt.Fprintf(w, "    </tr>\n")
@@ -792,30 +790,27 @@ func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User, qparams 
 
 		fmt.Fprintf(w, "  <tr>\n")
 
+		fmt.Fprintf(w, "    <td class=\"filename\">\n")
+		fmt.Fprintf(w, "      <p class=\"flex-row margin-bottom\">")
+		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\"><a href=\"/file/%d\">%s</a></span>", fileid, filename)
 		if folder != "" {
-			fmt.Fprintf(w, "    <td class=\"filename doc-title smalltext\">\n")
-			fmt.Fprintf(w, "      <a class=\"\" href=\"/file/%d\">%s</a>\n", fileid, filename)
-			fmt.Fprintf(w, "    </td>\n")
-			fmt.Fprintf(w, "    <td class=\"path finetext\">%s</td>\n", folder)
-		} else {
-			fmt.Fprintf(w, "    <td colspan=\"2\" class=\"filename doc-title smalltext\">\n")
-			fmt.Fprintf(w, "      <a class=\"\" href=\"/file/%d\">%s</a>\n", fileid, filename)
-			fmt.Fprintf(w, "    </td>\n")
+			fmt.Fprintf(w, "      <span class=\"smalltext italic\">/%s/</span>", folder)
 		}
-
-		fmt.Fprintf(w, "    <td class=\"desc finetext\">\n")
-		fmt.Fprintf(w, "%s\n", parseMarkdown(desc))
+		fmt.Fprintf(w, "      </p>")
+		fmt.Fprintf(w, "      <div class=\"finetext\">%s</div>", parseMarkdown(desc))
 		fmt.Fprintf(w, "    </td>\n")
 
 		fmt.Fprintf(w, "    <td class=\"info finetext\">\n")
-		fmt.Fprintf(w, "      %s<br>\n", fileUser.Username)
-		fmt.Fprintf(w, "      %s\n", screatedt)
+		fmt.Fprintf(w, "      <ul class=\"line-menu\">\n")
+		fmt.Fprintf(w, "        <li>%s</li>\n", fileUser.Username)
+		fmt.Fprintf(w, "        <li>%s</li>\n", screatedt)
+		fmt.Fprintf(w, "      </ul>\n")
 		fmt.Fprintf(w, "    </td>\n")
 
 		fmt.Fprintf(w, "    <td class=\"action finetext\">\n")
 		fmt.Fprintf(w, "      <ul class=\"line-menu\">\n")
-		fmt.Fprintf(w, "        <li><a href=\"/editfile?fileid=%d&%s\">Update</li>\n", fileid, qparams)
-		fmt.Fprintf(w, "        <li><a href=\"/delfile?fileid=%d&%s\">Delete</li>\n", fileid, qparams)
+		fmt.Fprintf(w, "        <li><a href=\"/editfile?fileid=%d&%s\">Update</a></li>\n", fileid, qparams)
+		fmt.Fprintf(w, "        <li><a href=\"/delfile?fileid=%d&%s\">Delete</a></li>\n", fileid, qparams)
 		fmt.Fprintf(w, "      </ul>\n")
 		fmt.Fprintf(w, "    </td>\n")
 		fmt.Fprintf(w, "  </tr>\n")
