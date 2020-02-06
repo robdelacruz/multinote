@@ -237,8 +237,8 @@ th.action, td.action {
 .file-item .heading {
     font-size: 0.8em;
     word-break: break-all;
-    max-height: 1em;
-    overflow: hidden;
+    /*max-height: 2.4em;*/
+    /*overflow: hidden;*/
 }
 .file-item img.preview {
     max-width: 100%;
