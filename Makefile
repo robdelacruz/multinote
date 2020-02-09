@@ -9,7 +9,7 @@ dep:
 	go get -u gopkg.in/russross/blackfriday.v2
 
 groupnotesd: groupnotesd.go
-	go build -o groupnotesd groupnotesd.go
+	go build --tags "fts5" -o groupnotesd groupnotesd.go
 
 clean:
 	rm -rf groupnotesd
