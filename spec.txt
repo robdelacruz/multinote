@@ -6,6 +6,7 @@ Additional functionality to consider adding:
 - (site settings page) add help text textarea for login page
 - allow anonymous replies?
 - option to only show notes/files for logged in users
+- show excerpt (max: 55 words) instead of full note
 
 Plato Notes background
 http://thinkofit.com/plato/dwplato.htm
