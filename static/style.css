@@ -258,4 +258,17 @@ th.action, td.action {
     max-height: 1.2em;
 }
 
+.flex {
+    display: flex;
+}
+.stretchwidth {
+    width: 100%;
+}
+.spaceright > *:not(:last-child) {
+    margin: 0;
+    1margin-right: 1em;
+}
+.width-twothirds {
+    width: 67%;
+}
 

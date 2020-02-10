@@ -83,6 +83,7 @@ Initialize new notes file:
 	http.HandleFunc("/editnote/", editNoteHandler(db))
 	http.HandleFunc("/delnote/", delNoteHandler(db))
 	http.HandleFunc("/browsefiles/", browsefilesHandler(db))
+	http.HandleFunc("/search/", searchHandler(db))
 	http.HandleFunc("/file/", fileHandler(db))
 	http.HandleFunc("/uploadfile/", uploadFileHandler(db))
 	http.HandleFunc("/editfile/", editFileHandler(db))
@@ -1488,6 +1489,95 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+		var q string
+
+		w.Header().Set("Content-Type", "text/html")
+		printPageHead(w)
+		printPageNav(w, r, db)
+
+		q = r.FormValue("q")
+
+		fmt.Fprintf(w, "<h1 class=\"heading\">Search</h1>")
+		fmt.Fprintf(w, "<form class=\"simpleform flex spaceright width-twothirds\" action=\"/search/\" method=\"get\">\n")
+
+		fmt.Fprintf(w, "<input class=\"stretchwidth\" name=\"q\" placeholder=\"search\" value=\"%s\">\n", q)
+		fmt.Fprintf(w, "<button class=\"submit\">Search</button>\n")
+		fmt.Fprintf(w, "</form>\n")
+
+		var rows *sql.Rows
+		var err error
+		if q != "" {
+			s := `SELECT fts.thing, fts.thing_id, fts.title, fts.body, user.username, fts.createdt 
+FROM fts 
+LEFT OUTER JOIN note ON thing = 0 AND thing_id = note.note_id 
+LEFT OUTER JOIN notereply ON thing = 1 AND thing_id = notereply.notereply_id 
+LEFT OUTER JOIN file ON thing = 2 AND thing_id = file.file_id 
+LEFT OUTER JOIN user ON fts.user_id = user.user_id 
+WHERE fts MATCH ? 
+ORDER BY rank`
+			rows, err = db.Query(s, q)
+			if err != nil {
+				log.Printf("DB error on search: %s\n", err)
+				errmsg = "A problem occured. Please try again."
+
+				fmt.Fprintf(w, "<div class=\"control\">\n")
+				fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
+				fmt.Fprintf(w, "</div>\n")
+			}
+		}
+
+		if rows != nil {
+			printSearchResultsTable(w, rows)
+		}
+
+		printPageFoot(w)
+	}
+}
+
+func printSearchResultsTable(w http.ResponseWriter, rows *sql.Rows) {
+	fmt.Fprintf(w, "<table class=\"table narrow\">\n")
+	fmt.Fprintf(w, "<thead>\n")
+	fmt.Fprintf(w, "    <tr>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"title smalltext\">Title</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"info smalltext\">Uploader</th>\n")
+	fmt.Fprintf(w, "    </tr>\n")
+	fmt.Fprintf(w, "</thead>\n")
+	fmt.Fprintf(w, "<tbody>\n")
+
+	//s := `SELECT fts.thing, fts.thing_id, fts.title, fts.body, user.username
+	for rows.Next() {
+		var thing int
+		var thingid int64
+		var title, body, username, createdt string
+		rows.Scan(&thing, &thingid, &title, &body, &username, &createdt)
+		tcreatedt, _ := time.Parse(time.RFC3339, createdt)
+		screatedt := tcreatedt.Format("2 Jan 2006")
+
+		fmt.Fprintf(w, "  <tr>\n")
+
+		fmt.Fprintf(w, "    <td class=\"title\">\n")
+		fmt.Fprintf(w, "      <p class=\"flex-row margin-bottom\">")
+		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\"><a href=\"/note/%d\">%s</a></span>", thingid, title)
+		fmt.Fprintf(w, "      </p>")
+		fmt.Fprintf(w, "      <div class=\"finetext\">%s</div>", parseMarkdown(body))
+		fmt.Fprintf(w, "    </td>\n")
+
+		fmt.Fprintf(w, "    <td class=\"info finetext\">\n")
+		fmt.Fprintf(w, "      <ul class=\"line-menu\">\n")
+		fmt.Fprintf(w, "        <li>%s</li>\n", username)
+		fmt.Fprintf(w, "        <li>%s</li>\n", screatedt)
+		fmt.Fprintf(w, "      </ul>\n")
+		fmt.Fprintf(w, "    </td>\n")
+
+		fmt.Fprintf(w, "  </tr>\n")
+	}
+	fmt.Fprintf(w, "</tbody>\n")
+	fmt.Fprintf(w, "</table>\n")
+}
+
 func logoutHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c := http.Cookie{
@@ -2057,6 +2147,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		fmt.Fprintf(w, "<a href=\"/uploadfile/\">upload file</a>\n")
 	}
 	fmt.Fprintf(w, "<a href=\"/browsefiles/\">browse files</a>\n")
+	fmt.Fprintf(w, "<a href=\"/search/\">search</a>\n")
 	fmt.Fprintf(w, "</div>\n")
 
 	fmt.Fprintf(w, "</div>\n")

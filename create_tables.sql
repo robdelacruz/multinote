@@ -24,7 +24,7 @@ INSERT INTO user (user_id, username, password) VALUES (2, 'guest', '');
 
 -- fulltext search (fts) table and triggers to update fts
 DROP TABLE IF EXISTS fts;
-CREATE VIRTUAL TABLE fts USING FTS5(title, body, user_id, thing, thing_id);
+CREATE VIRTUAL TABLE fts USING FTS5(title, body, user_id, createdt, thing, thing_id);
 
 -- enum 'thing'
 -- note = 0
@@ -36,8 +36,8 @@ DROP TRIGGER IF EXISTS note_after_insert;
 CREATE TRIGGER note_after_insert
 AFTER INSERT ON note
 BEGIN
-    INSERT INTO fts (title, body, user_id, thing, thing_id)
-    VALUES (new.title, new.body, new.user_id, 0, new.note_id);
+    INSERT INTO fts (title, body, user_id, createdt, thing, thing_id)
+    VALUES (new.title, new.body, new.user_id, new.createdt, 0, new.note_id);
 END;
 
 DROP TRIGGER IF EXISTS note_after_update;
@@ -61,8 +61,8 @@ DROP TRIGGER IF EXISTS notereply_after_insert;
 CREATE TRIGGER notereply_after_insert
 AFTER INSERT ON notereply
 BEGIN
-    INSERT INTO fts (body, user_id, thing, thing_id)
-    VALUES (new.replybody, new.user_id, 1, new.notereply_id);
+    INSERT INTO fts (body, user_id, createdt, thing, thing_id)
+    VALUES (new.replybody, new.user_id, new.createdt, 1, new.notereply_id);
 END;
 
 DROP TRIGGER IF EXISTS notereply_after_update;
@@ -86,8 +86,8 @@ DROP TRIGGER IF EXISTS file_after_insert;
 CREATE TRIGGER file_after_insert
 AFTER INSERT ON file
 BEGIN
-    INSERT INTO fts (title, body, user_id, thing, thing_id)
-    VALUES (new.filename, new.desc, new.user_id, 2, new.file_id);
+    INSERT INTO fts (title, body, user_id, createdt, thing, thing_id)
+    VALUES (new.filename, new.desc, new.user_id, new.createdt, 2, new.file_id);
 END;
 
 DROP TRIGGER IF EXISTS file_after_update;
