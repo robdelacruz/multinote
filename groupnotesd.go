@@ -341,7 +341,7 @@ ORDER BY createdt DESC;`
 
 			fmt.Fprintf(w, "<div class=\"reply compact\">\n")
 			fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
-			fmt.Fprintf(w, "<li>%d. %s</li>\n", i, replyUser.Username)
+			fmt.Fprintf(w, "<li><a id=\"reply-%d\">%d.</a> %s</li>\n", replyid, i, replyUser.Username)
 			fmt.Fprintf(w, "<li>%s</li>\n", createdt)
 			if replyUser.Userid == login.Userid || login.Userid == ADMIN_ID {
 				fmt.Fprintf(w, "<li><a href=\"/editreply/?replyid=%d\">Edit</a></li>\n", replyid)
@@ -1562,10 +1562,11 @@ func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var rows *sql.Rows
 		var err error
 		if q != "" {
-			s := `SELECT e.entry_id, e.title, snippet(fts, 1, '<span class="highlight">', '</span>', '...', 55) , u.username, e.createdt, e.thing  
+			s := `SELECT e.entry_id, e.title, snippet(fts, 1, '<span class="highlight">', '</span>', '...', 55) , u.username, e.createdt, e.thing, parent.title, e.parent_id 
 FROM fts 
 INNER JOIN entry AS e ON e.entry_id = fts.entry_id 
 LEFT OUTER JOIN user AS u ON u.user_id = e.user_id 
+LEFT OUTER JOIN entry AS parent ON e.parent_id = parent.entry_id
 WHERE fts MATCH ? 
 ORDER BY fts.rank`
 			rows, err = db.Query(s, q)
@@ -1599,27 +1600,29 @@ func printSearchResultsTable(w http.ResponseWriter, rows *sql.Rows) {
 
 	//s := `SELECT fts.thing, fts.thing_id, fts.title, fts.body, user.username
 	for rows.Next() {
-		var entryid int64
-		var title, body, username, createdt string
-		var thing int
-		rows.Scan(&entryid, &title, &body, &username, &createdt, &thing)
+		var entryid, parentid, thing int64
+		var title, body, username, createdt, parentTitle string
+		rows.Scan(&entryid, &title, &body, &username, &createdt, &thing, &parentTitle, &parentid)
 		tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 		screatedt := tcreatedt.Format("2 Jan 2006")
 
 		fmt.Fprintf(w, "  <tr>\n")
 
 		fmt.Fprintf(w, "    <td class=\"title\">\n")
-		fmt.Fprintf(w, "      <p class=\"margin-bottom\">")
+		fmt.Fprintf(w, "      <p class=\"flex-row2 margin-bottom\">")
 		var link string
 		var sthing string
 		if thing == FILE {
 			link = fmt.Sprintf("<a href=\"/file/%d\">%s</a>", entryid, title)
 			sthing = "(file)"
+		} else if thing == REPLY {
+			link = fmt.Sprintf("<a href=\"/note/%d#reply-%d\">re: %s</a>", parentid, entryid, parentTitle)
+			sthing = "(reply)"
 		} else {
 			link = fmt.Sprintf("<a href=\"/note/%d\">%s</a>", entryid, title)
-			sthing = ""
+			sthing = "(note)"
 		}
-		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\">%s</span> <span class=\"finetext\">%s</a>", link, sthing)
+		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\">%s</span> <span class=\"finetext italic\">%s</a>", link, sthing)
 		fmt.Fprintf(w, "      </p>")
 		fmt.Fprintf(w, "      <div class=\"compact finetext\">%s</div>", parseMarkdown(body))
 		fmt.Fprintf(w, "    </td>\n")
