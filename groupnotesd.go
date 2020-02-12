@@ -1562,7 +1562,7 @@ func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var rows *sql.Rows
 		var err error
 		if q != "" {
-			s := `SELECT e.entry_id, e.title, e.body, u.username, e.createdt 
+			s := `SELECT e.entry_id, e.title, snippet(fts, 1, '<span class="highlight">', '</span>', '...', 55) , u.username, e.createdt, e.thing  
 FROM fts 
 INNER JOIN entry AS e ON e.entry_id = fts.entry_id 
 LEFT OUTER JOIN user AS u ON u.user_id = e.user_id 
@@ -1601,17 +1601,27 @@ func printSearchResultsTable(w http.ResponseWriter, rows *sql.Rows) {
 	for rows.Next() {
 		var entryid int64
 		var title, body, username, createdt string
-		rows.Scan(&entryid, &title, &body, &username, &createdt)
+		var thing int
+		rows.Scan(&entryid, &title, &body, &username, &createdt, &thing)
 		tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 		screatedt := tcreatedt.Format("2 Jan 2006")
 
 		fmt.Fprintf(w, "  <tr>\n")
 
 		fmt.Fprintf(w, "    <td class=\"title\">\n")
-		fmt.Fprintf(w, "      <p class=\"flex-row margin-bottom\">")
-		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\"><a href=\"/note/%d\">%s</a></span>", entryid, title)
+		fmt.Fprintf(w, "      <p class=\"margin-bottom\">")
+		var link string
+		var sthing string
+		if thing == FILE {
+			link = fmt.Sprintf("<a href=\"/file/%d\">%s</a>", entryid, title)
+			sthing = "(file)"
+		} else {
+			link = fmt.Sprintf("<a href=\"/note/%d\">%s</a>", entryid, title)
+			sthing = ""
+		}
+		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\">%s</span> <span class=\"finetext\">%s</a>", link, sthing)
 		fmt.Fprintf(w, "      </p>")
-		fmt.Fprintf(w, "      <div class=\"finetext\">%s</div>", parseMarkdown(body))
+		fmt.Fprintf(w, "      <div class=\"compact finetext\">%s</div>", parseMarkdown(body))
 		fmt.Fprintf(w, "    </td>\n")
 
 		fmt.Fprintf(w, "    <td class=\"info finetext\">\n")
