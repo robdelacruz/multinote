@@ -257,6 +257,9 @@ th.action, td.action {
 .file-desc.small {
     max-height: 1.2em;
 }
+img.thumbnail {
+    max-width: 200px;
+}
 
 .flex {
     display: flex;

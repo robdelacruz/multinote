@@ -802,7 +802,12 @@ func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User, qparams 
 			fmt.Fprintf(w, "      <span class=\"smalltext italic\">/%s/</span>", folder)
 		}
 		fmt.Fprintf(w, "      </p>")
-		fmt.Fprintf(w, "      <div class=\"finetext\">%s</div>", parseMarkdown(desc))
+		fmt.Fprintf(w, "      <div class=\"finetext\">\n")
+		//		if isFileExtImg(fileext(filename)) {
+		//			fmt.Fprintf(w, "<img class=\"thumbnail\" style=\"float: right;\" src=\"/file/%d\">\n", fileid)
+		//		}
+		fmt.Fprintf(w, parseMarkdown(desc))
+		fmt.Fprintf(w, "      </div>\n")
 		fmt.Fprintf(w, "    </td>\n")
 
 		fmt.Fprintf(w, "    <td class=\"info finetext\">\n")
