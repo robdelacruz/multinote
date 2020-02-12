@@ -20,6 +20,10 @@ import (
 
 const ADMIN_ID = 1
 
+const NOTE = 0
+const REPLY = 1
+const FILE = 2
+
 const SETTINGS_LIMIT = 100
 
 type User struct {
@@ -232,11 +236,12 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
-		s := `SELECT note_id, title, body, createdt, user.user_id, username, 
-(SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies, 
-(SELECT COALESCE(MAX(createdt), '') FROM notereply where note.note_id = notereply.note_id) AS maxreplydt 
-FROM note 
-LEFT OUTER JOIN user ON note.user_id = user.user_id 
+		s := `SELECT entry_id, title, body, createdt, user.user_id, username, 
+(SELECT COUNT(*) FROM entry AS reply WHERE reply.thing = 1 AND reply.parent_id = note.entry_id) AS numreplies, 
+(SELECT COALESCE(MAX(reply.createdt), '') FROM entry AS reply where reply.thing = 1 AND reply.parent_id = note.entry_id) AS maxreplydt 
+FROM entry AS note 
+LEFT OUTER JOIN user on note.user_id = user.user_id 
+WHERE note.thing = 0 
 ORDER BY MAX(createdt, maxreplydt) DESC 
 LIMIT ? OFFSET ?`
 		rows, err := db.Query(s, limit, offset)
@@ -281,10 +286,10 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		login := getLoginUser(r, db)
 
-		s := `SELECT title, body, createdt, user.user_id, username, (SELECT COUNT(*) FROM notereply WHERE note.note_id = notereply.note_id) AS numreplies 
-FROM note
+		s := `SELECT title, body, createdt, user.user_id, username, (SELECT COUNT(*) FROM entry as reply WHERE reply.thing = 1 AND reply.parent_id = note.entry_id) AS numreplies 
+FROM entry AS note 
 LEFT OUTER JOIN user ON note.user_id = user.user_id
-WHERE note_id = ?
+WHERE note.entry_id = ? AND note.thing = 0 
 ORDER BY createdt DESC;`
 		row := db.QueryRow(s, noteid)
 
@@ -317,7 +322,7 @@ ORDER BY createdt DESC;`
 		fmt.Fprintf(w, "<hr class=\"dotted\">\n")
 		fmt.Fprintf(w, "<p>Replies:</p>\n")
 
-		s = "SELECT notereply_id, replybody, createdt, user.user_id, username FROM notereply LEFT OUTER JOIN user ON notereply.user_id = user.user_id WHERE note_id = ? ORDER BY notereply_id"
+		s = "SELECT entry_id, body, createdt, user.user_id, username FROM entry AS reply LEFT OUTER JOIN user ON reply.user_id = user.user_id WHERE reply.parent_id = ? AND reply.thing = 1 ORDER BY reply.entry_id"
 		rows, err := db.Query(s, noteid)
 		if err != nil {
 			fmt.Fprintf(w, "<p class=\"error\">Error loading replies</p>\n")
@@ -409,8 +414,8 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			body = strings.ReplaceAll(body, "\r", "") // CRLF => CR
 			createdt := time.Now().Format(time.RFC3339)
 
-			s := "INSERT INTO note (title, body, createdt, user_id) VALUES (?, ?, ?, ?);"
-			_, err := sqlexec(db, s, title, body, createdt, login.Userid)
+			s := "INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (?, ?, ?, ?, ?);"
+			_, err := sqlexec(db, s, NOTE, title, body, createdt, login.Userid)
 			if err != nil {
 				log.Printf("DB error creating note: %s\n", err)
 				errmsg = "A problem occured. Please try again."
@@ -471,7 +476,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		s := "SELECT title, body, user_id FROM note WHERE note_id = ?"
+		s := "SELECT title, body, user_id FROM entry WHERE entry_id = ? AND thing = 0"
 		row := db.QueryRow(s, noteid)
 
 		var title, body string
@@ -486,6 +491,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		// Allow only creators or admin to edit the note.
 		if noteUserid != login.Userid && login.Userid != ADMIN_ID {
+			fmt.Printf("login userid: %d, note userid: %d\n", login.Userid, noteUserid)
 			log.Printf("User '%s' doesn't have access to note %d\n", login.Username, noteid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -500,7 +506,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			// CRLF causes problems in markdown parsing.
 			body = strings.ReplaceAll(body, "\r", "")
 
-			s := "UPDATE note SET title = ?, body = ?, createdt = ? WHERE note_id = ?"
+			s := "UPDATE entry SET title = ?, body = ?, createdt = ? WHERE entry_id = ? AND thing = 0"
 			_, err = sqlexec(db, s, title, body, createdt, noteid)
 			if err != nil {
 				log.Printf("DB error updating noteid %d: %s\n", noteid, err)
@@ -561,7 +567,7 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		s := "SELECT title, body, user_id FROM note WHERE note_id = ?"
+		s := "SELECT title, body, user_id FROM entry WHERE entry_id = ? AND thing = 0"
 		row := db.QueryRow(s, noteid)
 
 		var title, body string
@@ -569,14 +575,12 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		err := row.Scan(&title, &body, &noteUserid)
 		if err == sql.ErrNoRows {
 			// note doesn't exist so redirect to notes list page.
-			log.Printf("noteid %d doesn't exist\n", noteid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
 		// Allow only creators or admin to delete the note.
 		if noteUserid != login.Userid && login.Userid != ADMIN_ID {
-			log.Printf("User '%s' doesn't have access to note %d\n", login.Username, noteid)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -586,7 +590,7 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 			for {
 				// Delete note replies
-				s = "DELETE FROM notereply WHERE note_id = ?"
+				s = "DELETE FROM entry AS reply WHERE reply.parent_id = ? AND thing = 1"
 				_, err = sqlexec(db, s, noteid)
 				if err != nil {
 					log.Printf("DB error deleting notereplies of noteid %d: %s\n", noteid, err)
@@ -595,7 +599,7 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				}
 
 				// Delete note
-				s := "DELETE FROM note WHERE note_id = ?"
+				s := "DELETE FROM entry WHERE entry_id = ? AND thing = 0"
 				_, err = sqlexec(db, s, noteid)
 				if err != nil {
 					log.Printf("DB error deleting noteid %d: %s\n", noteid, err)
@@ -708,7 +712,7 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "  <a class=\"smalltext\" href=\"/browsefiles?offset=%d&limit=%d&outputfmt=%s\">View as %s</a>\n", offset, limit, fmtparam, fmtlink)
 		fmt.Fprintf(w, "</div>\n")
 
-		s := "SELECT file_id, filename, folder, desc, createdt, user.user_id, username FROM file LEFT OUTER JOIN user ON file.user_id = user.user_id ORDER BY createdt DESC LIMIT ? OFFSET ?"
+		s := "SELECT entry.entry_id, title, folder, body, createdt, user.user_id, username FROM entry INNER JOIN file ON entry.entry_id = file.entry_id LEFT OUTER JOIN user ON entry.user_id = user.user_id WHERE thing = 2 ORDER BY createdt DESC LIMIT ? OFFSET ?"
 		rows, err := db.Query(s, limit, offset)
 		if err != nil {
 			log.Fatal(err)
@@ -853,10 +857,10 @@ func fileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var fileUserid int64
 		var bsContent []byte
 		if qfilename != "" {
-			s := "SELECT filename, folder, content, user_id FROM file WHERE filename = ? AND folder = ?"
+			s := "SELECT title, folder, content, user_id FROM entry INNER JOIN file ON entry.entry_id = file.entry_id WHERE title = ? AND folder = ? AND thing = 2"
 			row = db.QueryRow(s, qfilename, qfolder)
 		} else {
-			s := "SELECT filename, folder, content, user_id FROM file WHERE file_id = ?"
+			s := "SELECT title, folder, content, user_id FROM entry INNER JOIN file ON entry.entry_id = file.entry_id WHERE entry.entry_id = ? AND thing = 2"
 			row = db.QueryRow(s, fileid)
 		}
 
@@ -940,10 +944,24 @@ func uploadFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 					break
 				}
 
-				s := "INSERT INTO file (filename, folder, desc, content, createdt, user_id) VALUES (?, ?, ?, ?, ?, ?);"
-				_, err = sqlexec(db, s, filename, folder, desc, bsContent, createdt, login.Userid)
+				s := "INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (?, ?, ?, ?, ?);"
+				result, err := sqlexec(db, s, FILE, filename, desc, createdt, login.Userid)
 				if err != nil {
-					log.Printf("uploadfile: DB error inserting file: %s\n", err)
+					log.Printf("uploadfile: DB error inserting file entry: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
+				s = "INSERT INTO file (entry_id, folder, content) VALUES (?, ?, ?);"
+				newid, err := result.LastInsertId()
+				if err != nil {
+					log.Printf("uploadfile: DB error LastInsertId() not supported: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+				_, err = sqlexec(db, s, newid, folder, bsContent)
+				if err != nil {
+					log.Printf("uploadfile: DB error inserting file contents: %s\n", err)
 					errmsg = "A problem occured. Please try again."
 					break
 				}
@@ -1041,7 +1059,7 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var filename, folder, desc string
 		var bsContent []byte
 		var fileUserid int64
-		s := "SELECT filename, folder, desc, user_id FROM file WHERE file_id = ?"
+		s := "SELECT title, folder, body, user_id FROM entry INNER JOIN file ON entry.entry_id = file.entry_id WHERE entry.entry_id = ? AND thing = 2"
 		row := db.QueryRow(s, fileid)
 		err := row.Scan(&filename, &folder, &desc, &fileUserid)
 		if err == sql.ErrNoRows {
@@ -1094,16 +1112,37 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 						errmsg = "A problem occured. Please try again."
 						break
 					}
-					s := "UPDATE file SET filename = ?, folder = ?, desc = ?, content = ? WHERE file_id = ?"
-					_, err = sqlexec(db, s, filename, folder, desc, bsContent, fileid)
+					s := "UPDATE entry SET title = ?, desc = ?, WHERE entry_id = ? AND thing = 2"
+					_, err = sqlexec(db, s, filename, desc, fileid)
+					if err != nil {
+						log.Printf("editfile: DB error updating file: %s\n", err)
+						errmsg = "A problem occured. Please try again."
+						break
+					}
+
+					s = "UPDATE file SET folder = ?, content = ? WHERE entry_id = ?"
+					_, err = sqlexec(db, s, folder, bsContent, fileid)
+					if err != nil {
+						log.Printf("editfile: DB error updating file: %s\n", err)
+						errmsg = "A problem occured. Please try again."
+						break
+					}
 				} else {
-					s := "UPDATE file SET filename = ?, folder = ?, desc = ? WHERE file_id = ?"
-					_, err = sqlexec(db, s, filename, folder, desc, fileid)
-				}
-				if err != nil {
-					log.Printf("editfile: DB error updating file: %s\n", err)
-					errmsg = "A problem occured. Please try again."
-					break
+					s := "UPDATE entry SET title = ?, body = ? WHERE entry_id = ? AND thing = 2"
+					_, err = sqlexec(db, s, filename, desc, fileid)
+					if err != nil {
+						log.Printf("editfile: DB error updating file: %s\n", err)
+						errmsg = "A problem occured. Please try again."
+						break
+					}
+
+					s = "UPDATE file SET folder = ? WHERE entry_id = ?"
+					_, err = sqlexec(db, s, folder, fileid)
+					if err != nil {
+						log.Printf("editfile: DB error updating file: %s\n", err)
+						errmsg = "A problem occured. Please try again."
+						break
+					}
 				}
 
 				// Successfully updated file.
@@ -1190,7 +1229,7 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		var filename, folder, desc string
 		var fileUserid int64
-		s := "SELECT filename, folder, desc, user_id FROM file WHERE file_id = ?"
+		s := "SELECT title, folder, body, user_id FROM entry INNER JOIN file ON entry.entry_id = file.entry_id WHERE entry.entry_id = ? AND thing = 2"
 		row := db.QueryRow(s, fileid)
 		err := row.Scan(&filename, &folder, &desc, &fileUserid)
 		if err == sql.ErrNoRows {
@@ -1211,7 +1250,15 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		if r.Method == "POST" {
 			for {
-				s := "DELETE FROM file WHERE file_id = ?"
+				s := "DELETE FROM entry WHERE entry_id = ? AND thing = 2"
+				_, err = sqlexec(db, s, fileid)
+				if err != nil {
+					log.Printf("del file: DB error deleting file: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
+				s = "DELETE FROM file WHERE entry_id = ?"
 				_, err = sqlexec(db, s, fileid)
 				if err != nil {
 					log.Printf("del file: DB error deleting file: %s\n", err)
@@ -1290,8 +1337,8 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			replybody = strings.ReplaceAll(replybody, "\r", "") // CRLF => CR
 			createdt := time.Now().Format(time.RFC3339)
 
-			s := "INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (?, ?, ?, ?)"
-			_, err := sqlexec(db, s, noteid, replybody, createdt, login.Userid)
+			s := "INSERT INTO entry (thing, parent_id, title, body, createdt, user_id) VALUES (?, ?, ?, ?, ?, ?)"
+			_, err := sqlexec(db, s, REPLY, noteid, "", replybody, createdt, login.Userid)
 			if err != nil {
 				log.Printf("DB error creating reply: %s\n", err)
 				errmsg = "A problem occured. Please try again."
@@ -1350,7 +1397,7 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var replybody string
 		var replyUserid int64
 		var noteid int64
-		s := "SELECT replybody, user_id, note_id FROM notereply WHERE notereply_id = ?"
+		s := "SELECT body, user_id, parent_id FROM entry AS reply WHERE reply.entry_id = ? AND reply.thing = 1"
 		row := db.QueryRow(s, replyid)
 		err := row.Scan(&replybody, &replyUserid, &noteid)
 		if err == sql.ErrNoRows {
@@ -1373,7 +1420,7 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			replybody = r.FormValue("replybody")
 			replybody = strings.ReplaceAll(replybody, "\r", "") // CRLF => CR
 
-			s := "UPDATE notereply SET replybody = ? WHERE notereply_id = ?"
+			s := "UPDATE entry SET body = ? WHERE entry_id = ? AND thing = 1"
 			_, err = sqlexec(db, s, replybody, replyid)
 			if err != nil {
 				log.Printf("DB error updating replyid %d: %s\n", replyid, err)
@@ -1433,7 +1480,7 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var replybody string
 		var replyUserid int64
 		var noteid int64
-		s := "SELECT replybody, user_id, note_id FROM notereply WHERE notereply_id = ?"
+		s := "SELECT body, user_id, parent_id FROM entry AS reply WHERE reply.entry_id = ? AND thing = 1"
 		row := db.QueryRow(s, replyid)
 		err := row.Scan(&replybody, &replyUserid, &noteid)
 		if err == sql.ErrNoRows {
@@ -1453,7 +1500,7 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if r.Method == "POST" {
-			s := "DELETE FROM notereply WHERE notereply_id = ?"
+			s := "DELETE FROM entry WHERE entry_id = ? AND thing = 1"
 			_, err = sqlexec(db, s, replyid)
 			if err != nil {
 				log.Printf("DB error deleting replyid %d: %s\n", replyid, err)
@@ -2236,7 +2283,7 @@ func isUsernameExists(db *sql.DB, username string) bool {
 }
 
 func queryPrevNoteid(db *sql.DB, noteid int64) (int64, string) {
-	s := "SELECT note_id, title FROM note WHERE note_id < ? ORDER BY note_id DESC LIMIT 1"
+	s := "SELECT entry_id, title FROM entry WHERE entry_id < ? AND thing = 0 ORDER BY entry_id DESC LIMIT 1"
 	row := db.QueryRow(s, noteid)
 	var prevNoteid int64
 	var title string
@@ -2252,7 +2299,7 @@ func queryPrevNoteid(db *sql.DB, noteid int64) (int64, string) {
 }
 
 func queryNextNoteid(db *sql.DB, noteid int64) (int64, string) {
-	s := "SELECT note_id, title FROM note WHERE note_id > ? ORDER BY note_id LIMIT 1"
+	s := "SELECT entry_id, title FROM entry WHERE entry_id > ? AND thing = 0 ORDER BY entry_id LIMIT 1"
 	row := db.QueryRow(s, noteid)
 	var nextNoteid int64
 	var title string

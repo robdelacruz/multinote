@@ -1,22 +1,21 @@
 PRAGMA foreign_keys = ON;
 
 BEGIN TRANSACTION;
-DELETE FROM notereply WHERE 1=1;
-DELETE FROM note WHERE 1=1;
 DELETE FROM file WHERE 1=1;
+DELETE FROM entry WHERE 1=1;
 DELETE FROM user WHERE user_id > 2;
 
 INSERT INTO user (username, password) VALUES ('robdelacruz', '$2a$10$QBKdo66QfkyqNczexwGFwul3731pQ970B96Bn1hgmvXLBu.LaJhFK'); -- password is '123'
 INSERT INTO user (username, password) VALUES ('lky', '');
 
-INSERT INTO note (title, body, createdt, user_id) VALUES ('Aimee Teagarden', 'All about Aimee Teagarden Hallmark show', '2019-12-01T14:00:00+08:00', 3);
-INSERT INTO note (title, body, createdt, user_id) VALUES ('Emma Fielding', 'All about Emma Fielding Hallmark show', '2019-12-02T14:00:00+08:00', 3);
-INSERT INTO note (title, body, createdt, user_id) VALUES ('Mystery 101', 'All about Mystery 101 Hallmark show', '2019-12-05T14:00:00+08:00', 3);
-INSERT INTO note (title, body, createdt, user_id) VALUES ('test note', 'test note 1', '2019-12-05T14:00:00+08:00', 3);
-INSERT INTO note (title, body, createdt, user_id) VALUES ('test note 2', 'test note 2', '2019-12-05T14:00:00+08:00', 3);
-INSERT INTO note (title, body, createdt, user_id) VALUES ('test note 3', 'test note 3', '2019-12-05T14:00:00+08:00', 3);
+INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Aimee Teagarden', 'All about Aimee Teagarden Hallmark show', '2019-12-01T14:00:00+08:00', 3);
+INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Emma Fielding', 'All about Emma Fielding Hallmark show', '2019-12-02T14:00:00+08:00', 3);
+INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Mystery 101', 'All about Mystery 101 Hallmark show', '2019-12-05T14:00:00+08:00', 3);
+INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'test note', 'test note 1', '2019-12-05T14:00:00+08:00', 3);
+INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'test note 2', 'test note 2', '2019-12-05T14:00:00+08:00', 3);
+INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'test note 3', 'test note 3', '2019-12-05T14:00:00+08:00', 3);
 
-INSERT INTO note (title, body, createdt, user_id) VALUES ('markdown test', '# Gettysburg Address
+INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'markdown test', '# Gettysburg Address
 
 *Versions*
 
@@ -47,7 +46,7 @@ November 19, 1863
 [source](http://www.abrahamlincolnonline.org/lincoln/speeches/gettysburg.htm)
 ', '2019-12-05T14:00:00+08:00', 3);
 
-INSERT INTO note (title, body, createdt, user_id) VALUES ('code test', '## Hello, World
+INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'code test', '## Hello, World
 
 Code for Hello, World:
 
@@ -58,7 +57,7 @@ Code for Hello, World:
     }
 ', '2019-12-05T14:00:00+08:00', 3);
 
-INSERT INTO note (title, body, createdt, user_id) VALUES ('Lee Kuan Yew Quotes', '### Lee Kuan Yew Quotes:
+INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Lee Kuan Yew Quotes', '### Lee Kuan Yew Quotes:
 
 >"If there was one formula for our success,it was that we were constantly studying how to make things work,or how to make them work better."
 
@@ -68,15 +67,8 @@ INSERT INTO note (title, body, createdt, user_id) VALUES ('Lee Kuan Yew Quotes',
 
 ', '2019-12-05T14:00:00+08:00', 3);
 
-INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (5, 'first comment!', '2019-12-05T14:00:00+08:00', 3);
-INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (5, 'second comment!', '2019-12-05T14:00:00+08:00', 3);
-INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (5, 'third comment!', '2019-12-05T14:00:00+08:00', 3);
-
-INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (6, 'a comment!', '2019-12-05T14:00:00+08:00', 3);
-INSERT INTO notereply (note_id, replybody, createdt, user_id) VALUES (6, 'another comment!', '2019-12-05T14:00:00+08:00', 3);
-
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Comanche',  
 'You need to straighten your posture and suck in your gut
 You need to pull back your shoulders and tighten your butt
@@ -96,8 +88,8 @@ If you want to have cities
 If you want to have cities, you''ve got to build roads' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Ruby Sees All',  
 'Do you think she''s swimming in your lies?
 Do you think it''s all just murky green?
@@ -122,8 +114,8 @@ Don''t you think it''s time to swim to shore?
 [Chorus]'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Up So Close',  
 'Up so close
 I never get to see your face
@@ -161,8 +153,8 @@ Microscope
 I''m never sure if it''s still you'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Pentagram',  
 'Your pentagram is down below our floor
 Your naked body shimmers in the night
@@ -188,8 +180,8 @@ In the first place
 Ahh, in the first place'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Jolene',  
 'Well, Jolene unlocked the thick breezeway door
 Like she''d done one hundred times before
@@ -234,8 +226,8 @@ Yeah
 Oh yeah'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Haze of Love',  
 'It''s 3 o''clock in the morning
 Or maybe it''s 4
@@ -277,8 +269,8 @@ For days and days and days
 I''m in a haze of love'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'You Part the Waters',  
 'You part the waters
 The same ones that I''m drowning in
@@ -305,8 +297,8 @@ You don''t even play piano
 But you part the waters'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Is This Love?',  
 'I can''t believe it''s true
 I can''t believe that you
@@ -347,8 +339,8 @@ Or should I, should I
 Should I close the door?'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Jesus Wrote a Blank Check',  
 'Jesus wrote a blank check
 One I haven''t cashed quite yet
@@ -390,8 +382,8 @@ Still I burn this earthen fire
 Still I burn this earthen fire'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Rock ''N'' Roll Lifestyle',  
 'Well, your CD collection looks shiny and costly
 How much did you pay for your Bad Moto Guzzi?
@@ -440,8 +432,8 @@ Excess ain''t rebellion
 You drinkin'', you''re drinking what they''re... sellin'''
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'I Bombed Korea',  
 'I bombed Korea every night
 My engines sang into the salty sky
@@ -468,8 +460,8 @@ We didn''t know if we would live or die
 I bombed Korea every night'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Mr. Mastodon Farm',  
 'Birds fall from the window ledge above mine
 Then they flap their wings at the last second
@@ -508,8 +500,8 @@ Mr. Mastodon Farm
 Cuts swatches out of all material'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Ain''t No Good',  
 'She''s gonna hand you a red-headed Gabriel
 Coming from the bar in a plastic tie
@@ -543,8 +535,8 @@ Watch out, she ain''t no good for you
 Watch out, she ain''t no good for you'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Frank Sinatra',  
 '[Hook]
 We know of an ancient radiation
@@ -569,8 +561,8 @@ That haunts dismembered constellations
 A faintly glimmering radio station'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'The Distance',  
 '[Verse 1]
 Reluctantly crouched at the starting line
@@ -631,8 +623,8 @@ He''s going for speed
 He''s going the distance' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Friend is a Four Letter Word',  
 'To me, coming from you
 Friend is a four letter word
@@ -660,8 +652,8 @@ But to me, coming from you
 Friend is a four letter word'
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Open Book',  
 'She''s writing, she''s writing
 She''s writing a novel
@@ -708,8 +700,8 @@ But you don''t know which page to turn to, do you?
 Do you? Do you? Do you?' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Daria',  
 'When you tried to kiss me
 I only bit your tongue
@@ -754,8 +746,8 @@ I won''t be soothed
 I won''t be soothed' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Race Car Ya-Yas',  
 'The land of race car ya-yas
 The land where you can''t change lanes
@@ -776,8 +768,8 @@ The land of race car ya-yas
 Race car ya-yas' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'I Will Survive',  
 '[Verse 1]
 At first I was afraid
@@ -864,8 +856,8 @@ Da, da, da, da, dada dada dada dada
 Oh no' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Stickshifts and Safetybelts',  
 '[Chorus]
 Stick shifts and safety belts
@@ -895,8 +887,8 @@ Next to me
 [Chorus]' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Perhaps, Perhaps, Perhaps',  
 'You won''t admit you love me
 And so
@@ -939,8 +931,8 @@ Perhaps, perhaps, perhaps
 Perhaps, perhaps, perhaps' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'It''s Coming Down',  
 '[Chorus]
 It''s coming down
@@ -991,8 +983,8 @@ It''s coming down
 It''s coming down' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Nugget',  
 'Okay alright, uh no
 This one, this one, this one
@@ -1075,8 +1067,8 @@ I don''t wanna
 (Yea, one two one two one)' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'She''ll Come Back to Me',  
 '[Verse 1]
 Last night I said to her
@@ -1112,8 +1104,8 @@ She''ll come back to me
 She''ll come back to me' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Italian Leather Sofa',  
 '[Verse 1]
 She doesn''t care whether or not he''s an island
@@ -1166,8 +1158,8 @@ She''s got a silk dress and healthy breasts
 That bounce on his Italian leather sofa' 
 );
 
-INSERT INTO note (createdt, user_id, title, body) 
-VALUES ('2020-02-01T14:00:00+08:00', 3, 
+INSERT INTO entry (thing, createdt, user_id, title, body) 
+VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
 'Sad Songs & Waltzes',  
 'I''m writing a song all about you
 A true song as real as my tears
