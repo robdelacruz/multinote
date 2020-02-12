@@ -1557,14 +1557,12 @@ func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var rows *sql.Rows
 		var err error
 		if q != "" {
-			s := `SELECT fts.thing, fts.thing_id, fts.title, fts.body, user.username, fts.createdt 
+			s := `SELECT e.entry_id, e.title, e.body, u.username, e.createdt 
 FROM fts 
-LEFT OUTER JOIN note ON thing = 0 AND thing_id = note.note_id 
-LEFT OUTER JOIN notereply ON thing = 1 AND thing_id = notereply.notereply_id 
-LEFT OUTER JOIN file ON thing = 2 AND thing_id = file.file_id 
-LEFT OUTER JOIN user ON fts.user_id = user.user_id 
+INNER JOIN entry AS e ON e.entry_id = fts.entry_id 
+LEFT OUTER JOIN user AS u ON u.user_id = e.user_id 
 WHERE fts MATCH ? 
-ORDER BY rank`
+ORDER BY fts.rank`
 			rows, err = db.Query(s, q)
 			if err != nil {
 				log.Printf("DB error on search: %s\n", err)
@@ -1596,10 +1594,9 @@ func printSearchResultsTable(w http.ResponseWriter, rows *sql.Rows) {
 
 	//s := `SELECT fts.thing, fts.thing_id, fts.title, fts.body, user.username
 	for rows.Next() {
-		var thing int
-		var thingid int64
+		var entryid int64
 		var title, body, username, createdt string
-		rows.Scan(&thing, &thingid, &title, &body, &username, &createdt)
+		rows.Scan(&entryid, &title, &body, &username, &createdt)
 		tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 		screatedt := tcreatedt.Format("2 Jan 2006")
 
@@ -1607,7 +1604,7 @@ func printSearchResultsTable(w http.ResponseWriter, rows *sql.Rows) {
 
 		fmt.Fprintf(w, "    <td class=\"title\">\n")
 		fmt.Fprintf(w, "      <p class=\"flex-row margin-bottom\">")
-		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\"><a href=\"/note/%d\">%s</a></span>", thingid, title)
+		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\"><a href=\"/note/%d\">%s</a></span>", entryid, title)
 		fmt.Fprintf(w, "      </p>")
 		fmt.Fprintf(w, "      <div class=\"finetext\">%s</div>", parseMarkdown(body))
 		fmt.Fprintf(w, "    </td>\n")
