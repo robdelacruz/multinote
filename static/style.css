@@ -279,4 +279,8 @@ img.thumbnail {
     color: #d6deeb;
     background-color: #2d2c5d;
 }
+.greyed-text {
+    color: #444;
+    font-style: italic;
+}
 

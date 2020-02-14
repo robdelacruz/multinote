@@ -15,13 +15,13 @@ CREATE TABLE entry (entry_id INTEGER PRIMARY KEY NOT NULL, thing INTEGER NOT NUL
 CREATE TABLE file (entry_id INTEGER PRIMARY KEY NOT NULL, folder TEXT, content BLOB, FOREIGN KEY(entry_id) REFERENCES entry);
 
 DROP TABLE IF EXISTS user;
-CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password TEXT, CONSTRAINT unique_username UNIQUE (username));
+CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password TEXT, active INTEGER NOT NULL, CONSTRAINT unique_username UNIQUE (username));
 
 DROP TABLE IF EXISTS site;
 CREATE TABLE site (site_id INTEGER PRIMARY KEY NOT NULL, title TEXT, desc TEXT);
 
-INSERT INTO user (user_id, username, password) VALUES (1, 'admin', '');
-INSERT INTO user (user_id, username, password) VALUES (2, 'guest', '');
+INSERT INTO user (user_id, username, password, active) VALUES (1, 'admin', '', 1);
+INSERT INTO user (user_id, username, password, active) VALUES (2, 'guest', '', 1);
 
 DROP TABLE IF EXISTS fts;
 CREATE VIRTUAL TABLE fts USING FTS5(title, body, entry_id);
