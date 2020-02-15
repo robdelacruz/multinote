@@ -273,10 +273,13 @@ img.thumbnail {
 .stretchwidth {
     width: 100%;
 }
-.spaceright > *:not(:last-child) {
-    margin: 0;
-    1margin-right: 1em;
+.spaceright {
+    margin-right: 1em;
 }
+.spacedown {
+    margin-bottom: 1em;
+}
+
 .width-twothirds {
     width: 67%;
 }
@@ -289,4 +292,10 @@ img.thumbnail {
     color: #444;
     font-style: italic;
 }
+.simplebox {
+    border: 1px solid #888;
+    border-radius: 5px;
+    padding: 0.5em 1em;
+}
+
 

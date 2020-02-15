@@ -38,6 +38,7 @@ type Site struct {
 	Desc                    string
 	RequireLoginForPageview bool
 	AllowAnonReplies        bool
+	Loginmsg                string
 }
 
 func main() {
@@ -1592,7 +1593,7 @@ func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		q = r.FormValue("q")
 
 		fmt.Fprintf(w, "<h1 class=\"heading\">Search</h1>")
-		fmt.Fprintf(w, "<form class=\"simpleform flex spaceright width-twothirds\" action=\"/search/\" method=\"get\">\n")
+		fmt.Fprintf(w, "<form class=\"simpleform flex width-twothirds\" action=\"/search/\" method=\"get\">\n")
 
 		fmt.Fprintf(w, "<input class=\"stretchwidth\" name=\"q\" placeholder=\"search\" value=\"%s\">\n", q)
 		fmt.Fprintf(w, "<button class=\"submit\">Search</button>\n")
@@ -1764,6 +1765,13 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		printPageHead(w)
 		printPageNav(w, r, db)
+
+		site := querySite(db)
+		if strings.TrimSpace(site.Loginmsg) != "" {
+			fmt.Fprintf(w, "<div class=\"simplebox compact spacedown\">\n")
+			fmt.Fprintf(w, parseMarkdown(site.Loginmsg))
+			fmt.Fprintf(w, "</div>\n")
+		}
 
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/login/\" method=\"post\">\n")
 		fmt.Fprintf(w, "<h1 class=\"heading\">Log In</h1>")
@@ -2129,8 +2137,6 @@ func activateUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var errmsg string
-		var title, desc string
-		var requireloginforpageview, allowanonreplies int
 
 		login := getLoginUser(r, db)
 		if login.Userid != ADMIN_ID {
@@ -2139,35 +2145,32 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		s := "SELECT title, desc, requireloginforpageview, allowanonreplies FROM site WHERE site_id = 1"
-		row := db.QueryRow(s)
-		err := row.Scan(&title, &desc, &requireloginforpageview, &allowanonreplies)
-		if err == sql.ErrNoRows {
-			title = "Group Notes"
-			desc = "Central repository for notes"
-			requireloginforpageview = 0
-			allowanonreplies = 0
-		} else if err != nil {
-			log.Printf("error reading site settings for siteid %d\n", 1)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
+		site := querySite(db)
 
 		if r.Method == "POST" {
-			title = r.FormValue("title")
-			desc = r.FormValue("desc")
-			requireloginforpageview = 0
+			site.Title = r.FormValue("title")
+			site.Desc = r.FormValue("desc")
+			site.Loginmsg = r.FormValue("loginmsg")
+			site.RequireLoginForPageview = false
 			if r.FormValue("requireloginforpageview") != "" {
-				requireloginforpageview = 1
+				site.RequireLoginForPageview = true
 			}
-			allowanonreplies = 0
+			site.AllowAnonReplies = false
 			if r.FormValue("allowanonreplies") != "" {
-				allowanonreplies = 1
+				site.AllowAnonReplies = true
 			}
 
 			for {
-				s := "INSERT OR REPLACE INTO site (site_id, title, desc, requireloginforpageview, allowanonreplies) VALUES (1, ?, ?, ?, ?)"
-				_, err = sqlexec(db, s, title, desc, requireloginforpageview, allowanonreplies)
+				requireloginforpageview := 0
+				if site.RequireLoginForPageview {
+					requireloginforpageview = 1
+				}
+				allowanonreplies := 0
+				if site.AllowAnonReplies {
+					allowanonreplies = 1
+				}
+				s := "INSERT OR REPLACE INTO site (site_id, title, desc, requireloginforpageview, allowanonreplies, loginmsg) VALUES (1, ?, ?, ?, ?, ?)"
+				_, err := sqlexec(db, s, site.Title, site.Desc, requireloginforpageview, allowanonreplies, site.Loginmsg)
 				if err != nil {
 					log.Printf("DB error updating site settings: %s\n", err)
 					errmsg = "A problem occured. Please try again."
@@ -2192,30 +2195,35 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label for=\"title\">site title</label>\n")
-		fmt.Fprintf(w, "<input id=\"title\" name=\"title\" type=\"text\" size=\"50\" value=\"%s\">\n", title)
+		fmt.Fprintf(w, "<input id=\"title\" name=\"title\" type=\"text\" size=\"50\" value=\"%s\">\n", site.Title)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label for=\"desc\">site description</label>\n")
-		fmt.Fprintf(w, "<input id=\"desc\" name=\"desc\" type=\"text\" size=\"50\" value=\"%s\">\n", desc)
+		fmt.Fprintf(w, "<input id=\"desc\" name=\"desc\" type=\"text\" size=\"50\" value=\"%s\">\n", site.Desc)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control row\">\n")
-		if requireloginforpageview == 0 {
-			fmt.Fprintf(w, "<input id=\"requireloginforpageview\" name=\"requireloginforpageview\" type=\"checkbox\" value=\"1\">\n")
-		} else {
+		if site.RequireLoginForPageview {
 			fmt.Fprintf(w, "<input id=\"requireloginforpageview\" name=\"requireloginforpageview\" type=\"checkbox\" value=\"1\" checked>\n")
+		} else {
+			fmt.Fprintf(w, "<input id=\"requireloginforpageview\" name=\"requireloginforpageview\" type=\"checkbox\" value=\"1\">\n")
 		}
 		fmt.Fprintf(w, "<label for=\"requireloginforpageview\">Require login to view pages</label>\n")
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control row\">\n")
-		if allowanonreplies == 0 {
-			fmt.Fprintf(w, "<input id=\"allowanonreplies\" name=\"allowanonreplies\" type=\"checkbox\" value=\"1\">\n")
-		} else {
+		if site.AllowAnonReplies {
 			fmt.Fprintf(w, "<input id=\"allowanonreplies\" name=\"allowanonreplies\" type=\"checkbox\" value=\"1\" checked>\n")
+		} else {
+			fmt.Fprintf(w, "<input id=\"allowanonreplies\" name=\"allowanonreplies\" type=\"checkbox\" value=\"1\">\n")
 		}
 		fmt.Fprintf(w, "<label for=\"allowanonreplies\">Allow anonymous replies</label>\n")
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label for=\"loginmsg\">Additional Login Message</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"loginmsg\" name=\"loginmsg\" rows=\"10\" cols=\"50\">%s</textarea>\n", site.Loginmsg)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -2477,11 +2485,15 @@ func queryUser(db *sql.DB, userid int64) *User {
 
 func querySite(db *sql.DB) *Site {
 	var site Site
-	s := "SELECT title, desc, requireloginforpageview, allowanonreplies FROM site WHERE site_id = 1"
+	s := "SELECT title, desc, requireloginforpageview, allowanonreplies, loginmsg FROM site WHERE site_id = 1"
 	row := db.QueryRow(s)
-	err := row.Scan(&site.Title, &site.Desc, &site.RequireLoginForPageview, &site.AllowAnonReplies)
+	err := row.Scan(&site.Title, &site.Desc, &site.RequireLoginForPageview, &site.AllowAnonReplies, &site.Loginmsg)
 	if err == sql.ErrNoRows {
 		// Site settings row not defined yet, just use default Site values.
+		site.Title = "Group Notes"
+		site.Desc = "Central repository for notes"
+		site.RequireLoginForPageview = true
+		site.AllowAnonReplies = false
 	} else if err != nil {
 		// DB error, log then use strict Site settings.
 		log.Printf("error reading site settings for siteid %d\n", 1)
