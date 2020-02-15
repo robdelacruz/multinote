@@ -1,10 +1,8 @@
 groupnotes - Inspired by PLATO Notes.
 
 Additional functionality to consider adding:
-- deactivate user
 - (site settings page) add help text textarea for login page
 - allow anonymous replies?
-- option to only show notes/files for logged in users
 - show excerpt (max: 55 words) instead of full note
 - option for wysiwyg markdown editor (https://github.com/sparksuite/simplemde-markdown-editor)
 

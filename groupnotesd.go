@@ -33,6 +33,13 @@ type User struct {
 	Active   int
 }
 
+type Site struct {
+	Title                   string
+	Desc                    string
+	RequireLoginForPageview bool
+	AllowAnonReplies        bool
+}
+
 func main() {
 	port := "8000"
 
@@ -223,6 +230,9 @@ func parseNoteid(url string) int64 {
 func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		login := getLoginUser(r, db)
+		if !hasPageAccess(login, querySite(db)) {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+		}
 
 		w.Header().Set("Content-Type", "text/html")
 
@@ -264,7 +274,7 @@ LIMIT ? OFFSET ?`
 			fmt.Fprintf(w, "<li>\n")
 			fmt.Fprintf(w, "<p class=\"doc-title\"><a href=\"/note/%d\">%s</a></p>\n", noteid, title)
 
-			printByline(w, login, noteid, noteUser, tcreatedt, numreplies)
+			printByline(w, login, noteid, &noteUser, tcreatedt, numreplies)
 			fmt.Fprintf(w, "</li>\n")
 
 			nrows++
@@ -288,6 +298,9 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		login := getLoginUser(r, db)
+		if !hasPageAccess(login, querySite(db)) {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+		}
 
 		s := `SELECT title, body, createdt, user.user_id, username, (SELECT COUNT(*) FROM entry as reply WHERE reply.thing = 1 AND reply.parent_id = note.entry_id) AS numreplies 
 FROM entry AS note 
@@ -317,7 +330,7 @@ ORDER BY createdt DESC;`
 		if err != nil {
 			tcreatedt = time.Now()
 		}
-		printByline(w, login, noteid, noteUser, tcreatedt, numreplies)
+		printByline(w, login, noteid, &noteUser, tcreatedt, numreplies)
 
 		bodyMarkup := parseMarkdown(body)
 		fmt.Fprintf(w, bodyMarkup)
@@ -686,6 +699,9 @@ func isFileExtImg(ext string) bool {
 func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		login := getLoginUser(r, db)
+		if !hasPageAccess(login, querySite(db)) {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+		}
 
 		w.Header().Set("Content-Type", "text/html")
 
@@ -738,7 +754,7 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login User, qparams string) int {
+func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login *User, qparams string) int {
 	fmt.Fprintf(w, "<div class=\"file-browser\">\n")
 	nrows := 0
 	for rows.Next() {
@@ -750,7 +766,7 @@ func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login User, qparams s
 
 		fmt.Fprintf(w, "<article class=\"content file-item\">\n")
 		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filename)
-		printFileByline(w, login, fileid, fileUser, tcreatedt, qparams)
+		printFileByline(w, login, fileid, &fileUser, tcreatedt, qparams)
 
 		ext := fileext(filename)
 
@@ -778,7 +794,7 @@ func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login User, qparams s
 	return nrows
 }
 
-func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login User, qparams string) int {
+func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login *User, qparams string) int {
 	fmt.Fprintf(w, "<table class=\"table narrow\">\n")
 	fmt.Fprintf(w, "<thead>\n")
 	fmt.Fprintf(w, "    <tr>\n")
@@ -860,6 +876,11 @@ func fileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		//login := getLoginUser(r, db)
 		// todo: authenticate user?
+		login := getLoginUser(r, db)
+		if !hasPageAccess(login, querySite(db)) {
+			http.Error(w, "login needed", 404)
+			return
+		}
 
 		var row *sql.Row
 		var filename, folder string
@@ -1547,6 +1568,11 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		login := getLoginUser(r, db)
+		if !hasPageAccess(login, querySite(db)) {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+		}
+
 		var errmsg string
 		var q string
 
@@ -2095,6 +2121,7 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var errmsg string
 		var title, desc string
+		var requireloginforpageview, allowanonreplies int
 
 		login := getLoginUser(r, db)
 		if login.Userid != ADMIN_ID {
@@ -2103,14 +2130,15 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		s := "SELECT title, desc FROM site WHERE site_id = 1"
+		s := "SELECT title, desc, requireloginforpageview, allowanonreplies FROM site WHERE site_id = 1"
 		row := db.QueryRow(s)
-		err := row.Scan(&title, &desc)
+		err := row.Scan(&title, &desc, &requireloginforpageview, &allowanonreplies)
 		if err == sql.ErrNoRows {
 			title = "Group Notes"
 			desc = "Central repository for notes"
+			requireloginforpageview = 0
+			allowanonreplies = 0
 		} else if err != nil {
-			// site settings doesn't exist
 			log.Printf("error reading site settings for siteid %d\n", 1)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -2119,10 +2147,18 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if r.Method == "POST" {
 			title = r.FormValue("title")
 			desc = r.FormValue("desc")
+			requireloginforpageview = 0
+			if r.FormValue("requireloginforpageview") != "" {
+				requireloginforpageview = 1
+			}
+			allowanonreplies = 0
+			if r.FormValue("allowanonreplies") != "" {
+				allowanonreplies = 1
+			}
 
 			for {
-				s := "INSERT OR REPLACE INTO site (site_id, title, desc) VALUES (1, ?, ?)"
-				_, err = sqlexec(db, s, title, desc)
+				s := "INSERT OR REPLACE INTO site (site_id, title, desc, requireloginforpageview, allowanonreplies) VALUES (1, ?, ?, ?, ?)"
+				_, err = sqlexec(db, s, title, desc, requireloginforpageview, allowanonreplies)
 				if err != nil {
 					log.Printf("DB error updating site settings: %s\n", err)
 					errmsg = "A problem occured. Please try again."
@@ -2146,13 +2182,31 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "</div>\n")
 		}
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>site title</label>\n")
-		fmt.Fprintf(w, "<input name=\"title\" type=\"text\" size=\"50\" value=\"%s\">\n", title)
+		fmt.Fprintf(w, "<label for=\"title\">site title</label>\n")
+		fmt.Fprintf(w, "<input id=\"title\" name=\"title\" type=\"text\" size=\"50\" value=\"%s\">\n", title)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>site description</label>\n")
-		fmt.Fprintf(w, "<input name=\"desc\" type=\"text\" size=\"50\" value=\"%s\">\n", desc)
+		fmt.Fprintf(w, "<label for=\"desc\">site description</label>\n")
+		fmt.Fprintf(w, "<input id=\"desc\" name=\"desc\" type=\"text\" size=\"50\" value=\"%s\">\n", desc)
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control row\">\n")
+		if requireloginforpageview == 0 {
+			fmt.Fprintf(w, "<input id=\"requireloginforpageview\" name=\"requireloginforpageview\" type=\"checkbox\" value=\"1\">\n")
+		} else {
+			fmt.Fprintf(w, "<input id=\"requireloginforpageview\" name=\"requireloginforpageview\" type=\"checkbox\" value=\"1\" checked>\n")
+		}
+		fmt.Fprintf(w, "<label for=\"requireloginforpageview\">Require login to view pages</label>\n")
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control row\">\n")
+		if allowanonreplies == 0 {
+			fmt.Fprintf(w, "<input id=\"allowanonreplies\" name=\"allowanonreplies\" type=\"checkbox\" value=\"1\">\n")
+		} else {
+			fmt.Fprintf(w, "<input id=\"allowanonreplies\" name=\"allowanonreplies\" type=\"checkbox\" value=\"1\" checked>\n")
+		}
+		fmt.Fprintf(w, "<label for=\"allowanonreplies\">Allow anonymous replies</label>\n")
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -2233,7 +2287,7 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func printByline(w io.Writer, login User, noteid int64, noteUser User, tcreatedt time.Time, nreplies int) {
+func printByline(w io.Writer, login *User, noteid int64, noteUser *User, tcreatedt time.Time, nreplies int) {
 	createdt := tcreatedt.Format("2 Jan 2006")
 	fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
 	fmt.Fprintf(w, "<li>%s</li>\n", createdt)
@@ -2253,7 +2307,7 @@ func printByline(w io.Writer, login User, noteid int64, noteUser User, tcreatedt
 	fmt.Fprintf(w, "</ul>\n")
 }
 
-func printFileByline(w io.Writer, login User, fileid int64, fileUser User, tcreatedt time.Time, qparams string) {
+func printFileByline(w io.Writer, login *User, fileid int64, fileUser *User, tcreatedt time.Time, qparams string) {
 	createdt := tcreatedt.Format("2 Jan 2006")
 	fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
 	fmt.Fprintf(w, "<li>%s</li>\n", createdt)
@@ -2371,15 +2425,15 @@ func printPagingNav(w http.ResponseWriter, baseurl string, offset, limit, nrows 
 	fmt.Fprintf(w, "</div>\n")
 }
 
-func getLoginUser(r *http.Request, db *sql.DB) User {
+func getLoginUser(r *http.Request, db *sql.DB) *User {
 	c, err := r.Cookie("userid")
 	if err != nil {
-		return User{-1, "", 0}
+		return &User{-1, "", 0}
 	}
 
 	userid := idtoi(c.Value)
 	if userid == -1 {
-		return User{-1, "", 0}
+		return &User{-1, "", 0}
 	}
 
 	var username string
@@ -2388,9 +2442,32 @@ func getLoginUser(r *http.Request, db *sql.DB) User {
 	row := db.QueryRow(s, userid)
 	err = row.Scan(&username, &active)
 	if err == sql.ErrNoRows {
-		return User{-1, "", 0}
+		return &User{-1, "", 0}
 	}
-	return User{Userid: userid, Username: username, Active: active}
+	return &User{Userid: userid, Username: username, Active: active}
+}
+
+func querySite(db *sql.DB) *Site {
+	var site Site
+	s := "SELECT title, desc, requireloginforpageview, allowanonreplies FROM site WHERE site_id = 1"
+	row := db.QueryRow(s)
+	err := row.Scan(&site.Title, &site.Desc, &site.RequireLoginForPageview, &site.AllowAnonReplies)
+	if err == sql.ErrNoRows {
+		// Site settings row not defined yet, just use default Site values.
+	} else if err != nil {
+		// DB error, log then use strict Site settings.
+		log.Printf("error reading site settings for siteid %d\n", 1)
+		site.RequireLoginForPageview = true
+		site.AllowAnonReplies = false
+	}
+	return &site
+}
+
+func hasPageAccess(u *User, site *Site) bool {
+	if site.RequireLoginForPageview && (u.Userid <= 0 || u.Active == 0) {
+		return false
+	}
+	return true
 }
 
 func isUsernameExists(db *sql.DB, username string) bool {

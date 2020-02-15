@@ -18,7 +18,7 @@ DROP TABLE IF EXISTS user;
 CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password TEXT, active INTEGER NOT NULL, CONSTRAINT unique_username UNIQUE (username));
 
 DROP TABLE IF EXISTS site;
-CREATE TABLE site (site_id INTEGER PRIMARY KEY NOT NULL, title TEXT, desc TEXT);
+CREATE TABLE site (site_id INTEGER PRIMARY KEY NOT NULL, title TEXT, desc TEXT, requireloginforpageview INTEGER NOT NULL, allowanonreplies INTEGER NOT NULL);
 
 INSERT INTO user (user_id, username, password, active) VALUES (1, 'admin', '', 1);
 INSERT INTO user (user_id, username, password, active) VALUES (2, 'guest', '', 1);
