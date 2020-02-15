@@ -19,7 +19,7 @@ import (
 )
 
 const ADMIN_ID = 1
-const GUEST_ID = 1
+const GUEST_ID = 2
 
 const NOTE = 0
 const REPLY = 1
@@ -375,6 +375,11 @@ ORDER BY createdt DESC;`
 
 		// New Reply form
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/newreply/?noteid=%d\" method=\"post\">\n", noteid)
+		// If not logged in and 'allow anonymous replies' is on, use Guest user to reply.
+		site := querySite(db)
+		if login.Userid == -1 && site.AllowAnonReplies {
+			login = queryUser(db, GUEST_ID)
+		}
 		if login.Userid == -1 || login.Active == 0 {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<label><a href=\"/login/\">Log in</a> to post a reply.</label>")
@@ -1356,6 +1361,10 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		login := getLoginUser(r, db)
+		site := querySite(db)
+		if login.Userid == -1 && site.AllowAnonReplies {
+			login = queryUser(db, GUEST_ID)
+		}
 		if login.Userid == -1 || login.Active == 0 {
 			log.Printf("new reply: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -2444,7 +2453,26 @@ func getLoginUser(r *http.Request, db *sql.DB) *User {
 	if err == sql.ErrNoRows {
 		return &User{-1, "", 0}
 	}
+	if err != nil {
+		fmt.Printf("queryUser() db error (%s)\n", err)
+		return &User{-1, "", 0}
+	}
 	return &User{Userid: userid, Username: username, Active: active}
+}
+
+func queryUser(db *sql.DB, userid int64) *User {
+	var u User
+	s := "SELECT user_id, username, active FROM user WHERE user_id = ?"
+	row := db.QueryRow(s, userid)
+	err := row.Scan(&u.Userid, &u.Username, &u.Active)
+	if err == sql.ErrNoRows {
+		return &User{-1, "", 0}
+	}
+	if err != nil {
+		fmt.Printf("queryUser() db error (%s)\n", err)
+		return &User{-1, "", 0}
+	}
+	return &u
 }
 
 func querySite(db *sql.DB) *Site {
