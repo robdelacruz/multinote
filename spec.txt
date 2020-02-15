@@ -1,9 +1,6 @@
 groupnotes - Inspired by PLATO Notes.
 
 Additional functionality to consider adding:
-- (site settings page) add help text textarea for login page
-- allow anonymous replies?
-- show excerpt (max: 55 words) instead of full note
 - option for wysiwyg markdown editor (https://github.com/sparksuite/simplemde-markdown-editor)
 
 Plato Notes background
