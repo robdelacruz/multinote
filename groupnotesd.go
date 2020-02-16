@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"html"
 	"io"
 	"io/ioutil"
 	"log"
@@ -1595,7 +1596,7 @@ func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<h1 class=\"heading\">Search</h1>")
 		fmt.Fprintf(w, "<form class=\"simpleform flex width-twothirds\" action=\"/search/\" method=\"get\">\n")
 
-		fmt.Fprintf(w, "<input class=\"stretchwidth\" name=\"q\" placeholder=\"search\" value=\"%s\">\n", q)
+		fmt.Fprintf(w, "<input class=\"stretchwidth\" name=\"q\" placeholder=\"search\" value=\"%s\">\n", html.EscapeString(q))
 		fmt.Fprintf(w, "<button class=\"submit\">Search</button>\n")
 		fmt.Fprintf(w, "</form>\n")
 
