@@ -2,6 +2,9 @@ groupnotes - Inspired by PLATO Notes.
 
 Additional functionality to consider adding:
 - option for wysiwyg markdown editor (https://github.com/sparksuite/simplemde-markdown-editor)
+- parse search string before passing it to fts5, Ex: ["this is a phrase" word1 word2] becomes ["this is a phrase" OR word1 OR word2]
+- add right column to notes index page with customizable content (from site settings)
+- add 'quote/reply' button to each reply
 
 Plato Notes background
 http://thinkofit.com/plato/dwplato.htm
