@@ -4,6 +4,7 @@ body {
     font-family: "Helvetica", "Arial", sans-serif;
     font-size: 16px;
     max-width: 50em;
+    max-width: 80em;
     background-color: #011627;
     color: #addb67; /* green text */
     color: #d6deeb; /* white greyish text */
@@ -44,6 +45,13 @@ a {
 }
 .pagenav a:not(:last-child) {
     margin-right: 0.5em;
+}
+
+.page-main {
+    max-width: 60em;
+}
+.page-sidebar {
+    max-width: 20em;
 }
 
 .heading {
