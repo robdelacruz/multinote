@@ -24,10 +24,20 @@ INSERT INTO user (user_id, username, password, active) VALUES (1, 'admin', '', 1
 INSERT INTO user (user_id, username, password, active) VALUES (2, 'guest', '', 1);
 
 INSERT INTO site (site_id, title, desc, requireloginforpageview, allowanonreplies, loginmsg, sidebar1, sidebar2) VALUES (1, 'Group Notes', 'Repository for Notes', 0, 0,  '', 
+'## About GroupNotes
+GroupNotes is a multi-user web based note sharing system. Inspired by PLATO Notes. 
+
+- Add and edit notes.
+- Upload files, images.
+- Reply to notes.
+- Multiple users.
+- Use to keep track of records, as a weblog, or CMS.
+- MIT License
+',
 '<div style="color: #d6deeb; background-color: #2d2c5d; padding: 0.5em; margin: 0; border: 1px solid; text-align: center;">
 Donate to the Developer
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top"><input type="hidden" name="cmd" value="_s-xclick" /><input type="hidden" name="hosted_button_id" value="N5GLMFNSW9UVN" /><input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" /><img alt="" border="0" src="https://www.paypal.com/en_PH/i/scr/pixel.gif" width="1" height="1" /></form>
-</div>', '');
+</div>');
 
 DROP TABLE IF EXISTS fts;
 CREATE VIRTUAL TABLE fts USING FTS5(title, body, entry_id);
