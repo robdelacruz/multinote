@@ -1,5 +1,5 @@
 body {
-    margin: 0 2em 1em;
+    margin: 0 auto 1em;
     padding: 0;
     font-family: "Helvetica", "Arial", sans-serif;
     font-size: 1em;
@@ -9,13 +9,20 @@ body {
     color: #d6deeb; /* white greyish text */
 }
 .page-main {
-    max-width: 555px;
-    padding-right: 1em;
+    1width: 555px;
+    1width: 100%;
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding-right: 2em;
 }
 .page-sidebar {
-    max-width: 200px;
-    max-width: 345px;
+    1width: 345px;
+    1width: 38%;
+    flex-basis: 258px;
+    flex-grow: 0;
+    flex-shrink: 0;
     padding: 0.5em;
+    color: #888;
 }
 .sidebar-item {
 }

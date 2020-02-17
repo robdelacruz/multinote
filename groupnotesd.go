@@ -2456,6 +2456,10 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 }
 
 func printPageSidebar(db *sql.DB, w http.ResponseWriter, site *Site) {
+	if strings.TrimSpace(site.Sidebar1) == "" && strings.TrimSpace(site.Sidebar2) == "" {
+		return
+	}
+
 	fmt.Fprintf(w, "<section class=\"page-sidebar\">\n")
 	if strings.TrimSpace(site.Sidebar1) != "" {
 		fmt.Fprintf(w, "<div class=\"sidebar-item compact spacedown\">\n")
