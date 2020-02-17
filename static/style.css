@@ -8,14 +8,20 @@ body {
     color: #addb67; /* green text */
     color: #d6deeb; /* white greyish text */
 }
-.page-main {
+.main {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.main-content {
     1width: 555px;
     1width: 100%;
     flex-grow: 1;
     flex-shrink: 1;
     padding-right: 2em;
 }
-.page-sidebar {
+.main-sidebar {
     1width: 345px;
     1width: 38%;
     flex-basis: 258px;
