@@ -2,13 +2,24 @@ body {
     margin: 0 2em 1em;
     padding: 0;
     font-family: "Helvetica", "Arial", sans-serif;
-    font-size: 16px;
-    max-width: 50em;
-    max-width: 80em;
+    font-size: 1em;
+    max-width: 900px;
     background-color: #011627;
     color: #addb67; /* green text */
     color: #d6deeb; /* white greyish text */
 }
+.page-main {
+    max-width: 555px;
+    padding-right: 1em;
+}
+.page-sidebar {
+    max-width: 200px;
+    max-width: 345px;
+    padding: 0.5em;
+}
+.sidebar-item {
+}
+
 a {
     color: #addb67; /* green links */
     color: #ecc48d; /* bright amber links */
@@ -45,13 +56,6 @@ a {
 }
 .pagenav a:not(:last-child) {
     margin-right: 0.5em;
-}
-
-.page-main {
-    max-width: 60em;
-}
-.page-sidebar {
-    max-width: 20em;
 }
 
 .heading {
@@ -163,6 +167,9 @@ a {
 }
 .simpleform .control.row label {
     margin-right: 0.5em;
+}
+.simpleform textarea {
+    width: 100%;
 }
 select {
     padding: 0 0.5em;
@@ -286,6 +293,12 @@ img.thumbnail {
 }
 .spacedown {
     margin-bottom: 1em;
+}
+.padright {
+    padding-right: 1em;
+}
+.paddown {
+    padding-bottom: 1em;
 }
 
 .width-twothirds {

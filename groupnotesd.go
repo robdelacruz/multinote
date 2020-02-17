@@ -40,6 +40,8 @@ type Site struct {
 	RequireLoginForPageview bool
 	AllowAnonReplies        bool
 	Loginmsg                string
+	Sidebar1                string
+	Sidebar2                string
 }
 
 func main() {
@@ -250,6 +252,8 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w)
 		printPageNav(w, r, db)
 
+		fmt.Fprintf(w, "<div class=\"flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"page-main\">\n")
 		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
 		s := `SELECT entry_id, title, body, createdt, user.user_id, username, 
 (SELECT COUNT(*) FROM entry AS reply WHERE reply.thing = 1 AND reply.parent_id = note.entry_id) AS numreplies, 
@@ -282,10 +286,11 @@ LIMIT ? OFFSET ?`
 			nrows++
 		}
 		fmt.Fprintf(w, "</ul>\n")
-
-		// Previous and More links
 		printPagingNav(w, "/?", offset, limit, nrows)
+		fmt.Fprintf(w, "</section>\n")
 
+		printPageSidebar(db, w, querySite(db))
+		fmt.Fprintf(w, "</div>\n")
 		printPageFoot(w)
 	}
 }
@@ -326,6 +331,8 @@ ORDER BY createdt DESC;`
 		printPageHead(w)
 		printPageNav(w, r, db)
 
+		fmt.Fprintf(w, "<div class=\"flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"page-main\">\n")
 		fmt.Fprintf(w, "<article class=\"content\">\n")
 		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/note/%d\">%s</a></h1>\n", noteid, title)
 		tcreatedt, err := time.Parse(time.RFC3339, createdt)
@@ -389,7 +396,7 @@ ORDER BY createdt DESC;`
 		} else {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<label>reply as %s:</label>\n", login.Username)
-			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\" cols=\"80\"></textarea>\n")
+			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\"></textarea>\n")
 			fmt.Fprintf(w, "</div>\n")
 
 			fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -415,7 +422,10 @@ ORDER BY createdt DESC;`
 			fmt.Fprintf(w, "</div>\n")
 			fmt.Fprintf(w, "</nav>\n")
 		}
+		fmt.Fprintf(w, "</section>\n")
 
+		printPageSidebar(db, w, querySite(db))
+		fmt.Fprintf(w, "</div>\n")
 		printPageFoot(w)
 	}
 }
@@ -470,7 +480,7 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label>note</label>\n")
-		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\" cols=\"80\">%s</textarea>\n", body)
+		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\">%s</textarea>\n", body)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -561,7 +571,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label>note</label>\n")
-		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\" cols=\"80\">%s</textarea>\n", body)
+		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\">%s</textarea>\n", body)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -654,7 +664,7 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label class=\"byline\">note</label>\n")
-		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\" cols=\"80\" readonly>%s</textarea>\n", body)
+		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\" readonly>%s</textarea>\n", body)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -2152,6 +2162,8 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			site.Title = r.FormValue("title")
 			site.Desc = r.FormValue("desc")
 			site.Loginmsg = r.FormValue("loginmsg")
+			site.Sidebar1 = r.FormValue("sidebar1")
+			site.Sidebar2 = r.FormValue("sidebar2")
 			site.RequireLoginForPageview = false
 			if r.FormValue("requireloginforpageview") != "" {
 				site.RequireLoginForPageview = true
@@ -2170,8 +2182,8 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				if site.AllowAnonReplies {
 					allowanonreplies = 1
 				}
-				s := "INSERT OR REPLACE INTO site (site_id, title, desc, requireloginforpageview, allowanonreplies, loginmsg) VALUES (1, ?, ?, ?, ?, ?)"
-				_, err := sqlexec(db, s, site.Title, site.Desc, requireloginforpageview, allowanonreplies, site.Loginmsg)
+				s := "INSERT OR REPLACE INTO site (site_id, title, desc, requireloginforpageview, allowanonreplies, loginmsg, sidebar1, sidebar2) VALUES (1, ?, ?, ?, ?, ?, ?, ?)"
+				_, err := sqlexec(db, s, site.Title, site.Desc, requireloginforpageview, allowanonreplies, site.Loginmsg, site.Sidebar1, site.Sidebar2)
 				if err != nil {
 					log.Printf("DB error updating site settings: %s\n", err)
 					errmsg = "A problem occured. Please try again."
@@ -2225,6 +2237,16 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label for=\"loginmsg\">Additional Login Message</label>\n")
 		fmt.Fprintf(w, "<textarea id=\"loginmsg\" name=\"loginmsg\" rows=\"10\" cols=\"50\">%s</textarea>\n", site.Loginmsg)
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label for=\"loginmsg\">Sidebar 1 Section</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"sidebar1\" name=\"sidebar1\" rows=\"10\" cols=\"50\">%s</textarea>\n", site.Sidebar1)
+		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label for=\"loginmsg\">Sidebar 2 Section</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"sidebar2\" name=\"sidebar2\" rows=\"10\" cols=\"50\">%s</textarea>\n", site.Sidebar2)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -2361,13 +2383,22 @@ func printPageFoot(w io.Writer) {
 func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	login := getLoginUser(r, db)
 
+	notitle := "(No Title)"
+	nodesc := "(Put a Description Here)"
+
 	s := "SELECT title, desc FROM site WHERE site_id = 1"
 	row := db.QueryRow(s)
 	var title, desc string
 	err := row.Scan(&title, &desc)
 	if err != nil {
-		title = "Group Notes"
-		desc = "Central repository for notes"
+		title = notitle
+		desc = nodesc
+	}
+	if strings.TrimSpace(title) == "" {
+		title = notitle
+	}
+	if strings.TrimSpace(desc) == "" {
+		desc = nodesc
 	}
 
 	fmt.Fprintf(w, "<header class=\"masthead\">\n")
@@ -2422,6 +2453,21 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	// Site description line
 	fmt.Fprintf(w, "<p class=\"finetext\">%s</p>\n", desc)
 	fmt.Fprintf(w, "</header>\n")
+}
+
+func printPageSidebar(db *sql.DB, w http.ResponseWriter, site *Site) {
+	fmt.Fprintf(w, "<section class=\"page-sidebar\">\n")
+	if strings.TrimSpace(site.Sidebar1) != "" {
+		fmt.Fprintf(w, "<div class=\"sidebar-item compact spacedown\">\n")
+		fmt.Fprintf(w, parseMarkdown(site.Sidebar1))
+		fmt.Fprintf(w, "</div>\n")
+	}
+	if strings.TrimSpace(site.Sidebar2) != "" {
+		fmt.Fprintf(w, "<div class=\"sidebar-item compact spacedown\">\n")
+		fmt.Fprintf(w, parseMarkdown(site.Sidebar2))
+		fmt.Fprintf(w, "</div>\n")
+	}
+	fmt.Fprintf(w, "</section>\n")
 }
 
 func printPagingNav(w http.ResponseWriter, baseurl string, offset, limit, nrows int) {
@@ -2486,9 +2532,9 @@ func queryUser(db *sql.DB, userid int64) *User {
 
 func querySite(db *sql.DB) *Site {
 	var site Site
-	s := "SELECT title, desc, requireloginforpageview, allowanonreplies, loginmsg FROM site WHERE site_id = 1"
+	s := "SELECT title, desc, requireloginforpageview, allowanonreplies, loginmsg, sidebar1, sidebar2 FROM site WHERE site_id = 1"
 	row := db.QueryRow(s)
-	err := row.Scan(&site.Title, &site.Desc, &site.RequireLoginForPageview, &site.AllowAnonReplies, &site.Loginmsg)
+	err := row.Scan(&site.Title, &site.Desc, &site.RequireLoginForPageview, &site.AllowAnonReplies, &site.Loginmsg, &site.Sidebar1, &site.Sidebar2)
 	if err == sql.ErrNoRows {
 		// Site settings row not defined yet, just use default Site values.
 		site.Title = "Group Notes"
@@ -2497,7 +2543,7 @@ func querySite(db *sql.DB) *Site {
 		site.AllowAnonReplies = false
 	} else if err != nil {
 		// DB error, log then use strict Site settings.
-		log.Printf("error reading site settings for siteid %d\n", 1)
+		log.Printf("error reading site settings for siteid %d (%s)\n", 1, err)
 		site.RequireLoginForPageview = true
 		site.AllowAnonReplies = false
 	}
