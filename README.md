@@ -1,14 +1,13 @@
-## groupnotes
+## About GroupNotes
 
-A barebones group notes website. Inspired by PLATO Notes.
+GroupNotes is a multi-user web based note sharing system. Inspired by PLATO Notes. 
 
-- Add and edit notes with images.
-- Upload files.
+- Add and edit notes.
+- Upload files, images.
 - Reply to notes.
 - Multiple users.
-
-License:
-  MIT
+- Use to keep track of records, as a weblog, or CMS.
+- MIT License
 
 ## Build and Install
 
