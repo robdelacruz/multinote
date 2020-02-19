@@ -1638,7 +1638,7 @@ func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		var errmsg string
-		q := r.FormValue("q")
+		q := strings.TrimSpace(r.FormValue("q"))
 
 		w.Header().Set("Content-Type", "text/html")
 		printPageHead(w)
@@ -1661,7 +1661,8 @@ LEFT OUTER JOIN user AS u ON u.user_id = e.user_id
 LEFT OUTER JOIN entry AS parent ON e.parent_id = parent.entry_id
 WHERE fts MATCH ? 
 ORDER BY fts.rank`
-			rows, err = db.Query(s, q)
+			qfts := parseSearchQ(q)
+			rows, err = db.Query(s, qfts)
 			if err != nil {
 				log.Printf("DB error on search: %s\n", err)
 				errmsg = "A problem occured. Please try again."
@@ -1677,6 +1678,65 @@ ORDER BY fts.rank`
 		}
 		printPageFoot(w)
 	}
+}
+
+// Convert search string into an fts query string.
+// Ex: '"this is a phrase" word1 word2' => '"this is a phrase" OR "word1" OR "word2"'
+func parseSearchQ(q string) string {
+	toks := tokenizeSearchQ(q)
+	for i, tok := range toks {
+		toks[i] = fmt.Sprintf("\"%s\"", tok)
+	}
+	return strings.Join(toks, " OR ")
+}
+
+// Tokenize search string before passing it to fts5,
+// Ex: '"this is a phrase" word1 word2' => ["this is a phrase", "word1", "word2"]
+func tokenizeSearchQ(q string) []string {
+	var toks []string
+	openquote := ""
+	var tokb strings.Builder
+	for _, c := range q {
+		ch := string(c)
+
+		// end quote: "abc def"
+		if ch == openquote {
+			tok := tokb.String()
+			if tok != "" {
+				toks = append(toks, tokb.String())
+			}
+			tokb.Reset()
+			openquote = ""
+			continue
+		}
+		// within quotes: "abc
+		if openquote != "" {
+			tokb.WriteString(ch)
+			continue
+		}
+		// open quote: "
+		if ch == "\"" || ch == "'" {
+			openquote = ch
+			continue
+		}
+		// whitespace (end token)
+		if ch == " " || ch == "\t" || ch == "\n" || ch == "\r" {
+			tok := tokb.String()
+			if tok != "" {
+				toks = append(toks, tokb.String())
+			}
+			tokb.Reset()
+			continue
+		}
+
+		tokb.WriteString(ch)
+	}
+
+	if tokb.Len() > 0 {
+		toks = append(toks, tokb.String())
+		tokb.Reset()
+	}
+	return toks
 }
 
 func printSearchResultsTable(w http.ResponseWriter, rows *sql.Rows) {
