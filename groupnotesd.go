@@ -249,7 +249,7 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			limit = SETTINGS_LIMIT
 		}
 
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -328,7 +328,7 @@ ORDER BY createdt DESC;`
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -374,8 +374,10 @@ ORDER BY createdt DESC;`
 				fmt.Fprintf(w, "<li><a href=\"/delreply/?replyid=%d\">Delete</a></li>\n", replyid)
 			}
 			fmt.Fprintf(w, "</ul>\n")
+			fmt.Fprintf(w, "<div id=\"replybody-%d\">\n", i)
 			replybodyMarkup := parseMarkdown(replybody)
 			fmt.Fprintf(w, replybodyMarkup)
+			fmt.Fprintf(w, "</div>\n")
 			fmt.Fprintf(w, "</div>\n")
 
 			i++
@@ -396,8 +398,8 @@ ORDER BY createdt DESC;`
 		} else {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<a id=\"newreply\"></a>\n")
-			fmt.Fprintf(w, "<label>reply as %s:</label>\n", login.Username)
-			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\"></textarea>\n")
+			fmt.Fprintf(w, "<label for=\"replybody\">reply as %s:</label>\n", login.Username)
+			fmt.Fprintf(w, "<textarea id=\"replybody\" name=\"replybody\" rows=\"10\"></textarea>\n")
 			fmt.Fprintf(w, "</div>\n")
 
 			fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -463,7 +465,7 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -560,7 +562,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -658,7 +660,7 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -751,7 +753,7 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			outputfmt = "table"
 		}
 
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmtlink := "Grid"
@@ -1043,7 +1045,7 @@ func uploadFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1219,7 +1221,7 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1345,7 +1347,7 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1432,7 +1434,7 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1519,7 +1521,7 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1603,7 +1605,7 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1642,7 +1644,7 @@ func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		q := strings.TrimSpace(r.FormValue("q"))
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<h1 class=\"heading\">Search</h1>")
@@ -1875,7 +1877,7 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1926,7 +1928,7 @@ func adminsetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1961,7 +1963,7 @@ func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -2031,7 +2033,7 @@ func newUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -2146,7 +2148,7 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -2240,7 +2242,7 @@ func activateUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -2328,7 +2330,7 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -2407,7 +2409,7 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w)
+		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 		fmt.Fprintf(w, "<div class=\"main\">\n")
 		fmt.Fprintf(w, "<section class=\"main-content\">\n")
@@ -2503,7 +2505,7 @@ func printFileByline(w io.Writer, login *User, fileid int64, fileUser *User, tcr
 	}
 }
 
-func printPageHead(w io.Writer) {
+func printPageHead(w io.Writer, jsurls []string, cssurls []string) {
 	fmt.Fprintf(w, "<!DOCTYPE html>\n")
 	fmt.Fprintf(w, "<html>\n")
 	fmt.Fprintf(w, "<head>\n")
@@ -2511,6 +2513,12 @@ func printPageHead(w io.Writer) {
 	fmt.Fprintf(w, "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
 	fmt.Fprintf(w, "<title>Website</title>\n")
 	fmt.Fprintf(w, "<link rel=\"stylesheet\" type=\"text/css\" href=\"/static/style.css\">\n")
+	for _, cssurl := range cssurls {
+		fmt.Fprintf(w, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">\n", cssurl)
+	}
+	for _, jsurl := range jsurls {
+		fmt.Fprintf(w, "<script src=\"%s\"></script>\n", jsurl)
+	}
 	fmt.Fprintf(w, "</head>\n")
 	fmt.Fprintf(w, "<body>\n")
 }

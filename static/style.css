@@ -7,6 +7,10 @@ body {
     background-color: #011627;
     color: #addb67; /* green text */
     color: #d6deeb; /* white greyish text */
+
+    /* dark greyish theme */
+    /* background-color: #1b1b1b; */
+    /* color: #c1c1c1; */
 }
 .main {
     display: flex;
@@ -15,15 +19,12 @@ body {
     justify-content: space-between;
 }
 .main-content {
-    1width: 555px;
-    1width: 100%;
-    flex-grow: 1;
-    flex-shrink: 1;
+    flex-basis: 590px;
+    flex-grow: 0;
+    flex-shrink: 0;
     padding-right: 2em;
 }
 .main-sidebar {
-    1width: 345px;
-    1width: 38%;
     flex-basis: 258px;
     flex-grow: 0;
     flex-shrink: 0;
