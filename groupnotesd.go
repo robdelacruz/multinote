@@ -395,6 +395,7 @@ ORDER BY createdt DESC;`
 			fmt.Fprintf(w, "</div>\n")
 		} else {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
+			fmt.Fprintf(w, "<a id=\"newreply\"></a>\n")
 			fmt.Fprintf(w, "<label>reply as %s:</label>\n", login.Username)
 			fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\"></textarea>\n")
 			fmt.Fprintf(w, "</div>\n")
