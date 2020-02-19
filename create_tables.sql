@@ -15,13 +15,13 @@ CREATE TABLE entry (entry_id INTEGER PRIMARY KEY NOT NULL, thing INTEGER NOT NUL
 CREATE TABLE file (entry_id INTEGER PRIMARY KEY NOT NULL, folder TEXT, content BLOB, FOREIGN KEY(entry_id) REFERENCES entry);
 
 DROP TABLE IF EXISTS user;
-CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password TEXT, active INTEGER NOT NULL, CONSTRAINT unique_username UNIQUE (username));
+CREATE TABLE user (user_id INTEGER PRIMARY KEY NOT NULL, username TEXT, password TEXT, active INTEGER NOT NULL, mdeditor INTEGER NOT NULL, CONSTRAINT unique_username UNIQUE (username));
 
 DROP TABLE IF EXISTS site;
 CREATE TABLE site (site_id INTEGER PRIMARY KEY NOT NULL, title TEXT NOT NULL, desc TEXT NOT NULL, requireloginforpageview INTEGER NOT NULL, allowanonreplies INTEGER NOT NULL, loginmsg TEXT, sidebar1 TEXT NOT NULL, sidebar2 TEXT NOT NULL);
 
-INSERT INTO user (user_id, username, password, active) VALUES (1, 'admin', '', 1);
-INSERT INTO user (user_id, username, password, active) VALUES (2, 'guest', '', 1);
+INSERT INTO user (user_id, username, password, active, mdeditor) VALUES (1, 'admin', '', 1, 0);
+INSERT INTO user (user_id, username, password, active, mdeditor) VALUES (2, 'guest', '', 1, 0);
 
 INSERT INTO site (site_id, title, desc, requireloginforpageview, allowanonreplies, loginmsg, sidebar1, sidebar2) VALUES (1, 'Group Notes', 'Repository for Notes', 0, 0,  '', 
 '## About GroupNotes

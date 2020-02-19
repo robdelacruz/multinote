@@ -5,8 +5,9 @@ DELETE FROM file WHERE 1=1;
 DELETE FROM entry WHERE 1=1;
 DELETE FROM user WHERE user_id > 2;
 
-INSERT INTO user (username, password, active) VALUES ('robdelacruz', '$2a$10$QBKdo66QfkyqNczexwGFwul3731pQ970B96Bn1hgmvXLBu.LaJhFK', 1); -- password: '123'
-INSERT INTO user (username, password, active) VALUES ('lky', '', 0);
+INSERT INTO user (username, password, active, mdeditor) VALUES ('robdelacruz', '$2a$10$QBKdo66QfkyqNczexwGFwul3731pQ970B96Bn1hgmvXLBu.LaJhFK', 1, 0); -- password: '123'
+INSERT INTO user (username, password, active, mdeditor) VALUES ('lky', '', 1, 1);
+INSERT INTO user (username, password, active, mdeditor) VALUES ('abc', '', 0, 1);
 
 INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Aimee Teagarden', 'All about Aimee Teagarden Hallmark show', '2019-12-01T14:00:00+08:00', 3);
 INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Emma Fielding', 'All about Emma Fielding Hallmark show', '2019-12-02T14:00:00+08:00', 3);

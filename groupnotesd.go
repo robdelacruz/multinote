@@ -26,12 +26,16 @@ const NOTE = 0
 const REPLY = 1
 const FILE = 2
 
+const SIMPLEMDE_EDIT = 0
+const TEXTAREA_EDIT = 1
+
 const SETTINGS_LIMIT = 100
 
 type User struct {
 	Userid   int64
 	Username string
-	Active   int
+	Active   bool
+	Mdeditor int
 }
 
 type Site struct {
@@ -328,7 +332,15 @@ ORDER BY createdt DESC;`
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w, nil, nil)
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printPageHead(w, []string{
+				"/static/simplemde.min.js",
+			}, []string{
+				"/static/simplemde.min.css",
+			})
+		} else {
+			printPageHead(w, nil, nil)
+		}
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -369,7 +381,7 @@ ORDER BY createdt DESC;`
 			fmt.Fprintf(w, "<li><a id=\"reply-%d\">%d.</a> %s</li>\n", replyid, i, replyUser.Username)
 			fmt.Fprintf(w, "<li>%s</li>\n", createdt)
 			// Show edit/delete links if admin or active user owner of note.
-			if login.Userid == ADMIN_ID || (replyUser.Userid == login.Userid && login.Active == 1) {
+			if login.Userid == ADMIN_ID || (replyUser.Userid == login.Userid && login.Active) {
 				fmt.Fprintf(w, "<li><a href=\"/editreply/?replyid=%d\">Edit</a></li>\n", replyid)
 				fmt.Fprintf(w, "<li><a href=\"/delreply/?replyid=%d\">Delete</a></li>\n", replyid)
 			}
@@ -391,7 +403,7 @@ ORDER BY createdt DESC;`
 		if login.Userid == -1 && site.AllowAnonReplies {
 			login = queryUser(db, GUEST_ID)
 		}
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<label><a href=\"/login/\">Log in</a> to post a reply.</label>")
 			fmt.Fprintf(w, "</div>\n")
@@ -429,6 +441,10 @@ ORDER BY createdt DESC;`
 
 		printPageSidebar(db, w, querySite(db))
 		fmt.Fprintf(w, "</div>\n")
+
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printSimpleMDECode(w, "replybody")
+		}
 		printPageFoot(w)
 	}
 }
@@ -439,7 +455,7 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var title, body string
 
 		login := getLoginUser(r, db)
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("create note: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -465,7 +481,15 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w, nil, nil)
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printPageHead(w, []string{
+				"/static/simplemde.min.js",
+			}, []string{
+				"/static/simplemde.min.css",
+			})
+		} else {
+			printPageHead(w, nil, nil)
+		}
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -484,8 +508,8 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>note</label>\n")
-		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\">%s</textarea>\n", body)
+		fmt.Fprintf(w, "<label for=\"body\">note</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"body\" name=\"body\" rows=\"25\">%s</textarea>\n", body)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -496,8 +520,18 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		printPageSidebar(db, w, querySite(db))
 		fmt.Fprintf(w, "</div>\n")
+
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printSimpleMDECode(w, "body")
+		}
 		printPageFoot(w)
 	}
+}
+
+func printSimpleMDECode(w http.ResponseWriter, textid string) {
+	fmt.Fprintf(w, "<script>\n")
+	fmt.Fprintf(w, "let mde = new SimpleMDE({element: document.querySelector(\"#%s\")});\n", textid)
+	fmt.Fprintf(w, "</script>\n")
 }
 
 func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
@@ -512,7 +546,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		login := getLoginUser(r, db)
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("edit note: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -562,7 +596,15 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w, nil, nil)
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printPageHead(w, []string{
+				"/static/simplemde.min.js",
+			}, []string{
+				"/static/simplemde.min.css",
+			})
+		} else {
+			printPageHead(w, nil, nil)
+		}
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -580,8 +622,8 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>note</label>\n")
-		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\">%s</textarea>\n", body)
+		fmt.Fprintf(w, "<label for=\"body\">note</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"body\" name=\"body\" rows=\"25\">%s</textarea>\n", body)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -592,6 +634,10 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		printPageSidebar(db, w, querySite(db))
 		fmt.Fprintf(w, "</div>\n")
+
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printSimpleMDECode(w, "body")
+		}
 		printPageFoot(w)
 	}
 }
@@ -608,7 +654,7 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		login := getLoginUser(r, db)
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("del note: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -967,7 +1013,7 @@ func uploadFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		var filename, folder, desc string
 
 		login := getLoginUser(r, db)
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("upload file: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -1119,7 +1165,7 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		login := getLoginUser(r, db)
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("edit file: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -1295,7 +1341,7 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		login := getLoginUser(r, db)
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("del file: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -1409,7 +1455,7 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if login.Userid == -1 && site.AllowAnonReplies {
 			login = queryUser(db, GUEST_ID)
 		}
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("new reply: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -1434,7 +1480,15 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w, nil, nil)
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printPageHead(w, []string{
+				"/static/simplemde.min.js",
+			}, []string{
+				"/static/simplemde.min.css",
+			})
+		} else {
+			printPageHead(w, nil, nil)
+		}
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1447,8 +1501,8 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "</div>\n")
 		}
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>enter reply:</label>\n")
-		fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\">%s</textarea>\n", replybody)
+		fmt.Fprintf(w, "<label for=\"replybody\">enter reply:</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"replybody\" name=\"replybody\" rows=\"10\">%s</textarea>\n", replybody)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -1459,6 +1513,10 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		printPageSidebar(db, w, querySite(db))
 		fmt.Fprintf(w, "</div>\n")
+
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printSimpleMDECode(w, "replybody")
+		}
 		printPageFoot(w)
 	}
 }
@@ -1475,7 +1533,7 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		login := getLoginUser(r, db)
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("edit reply: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -1521,7 +1579,15 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		printPageHead(w, nil, nil)
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printPageHead(w, []string{
+				"/static/simplemde.min.js",
+			}, []string{
+				"/static/simplemde.min.css",
+			})
+		} else {
+			printPageHead(w, nil, nil)
+		}
 		printPageNav(w, r, db)
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
@@ -1534,7 +1600,7 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "</div>\n")
 		}
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<textarea name=\"replybody\" rows=\"10\">%s</textarea>\n", replybody)
+		fmt.Fprintf(w, "<textarea id=\"replybody\" name=\"replybody\" rows=\"10\">%s</textarea>\n", replybody)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -1547,6 +1613,10 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		printPageSidebar(db, w, querySite(db))
 		fmt.Fprintf(w, "</div>\n")
+
+		if login.Mdeditor == SIMPLEMDE_EDIT {
+			printSimpleMDECode(w, "replybody")
+		}
 		printPageFoot(w)
 	}
 }
@@ -1563,7 +1633,7 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		login := getLoginUser(r, db)
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("del reply: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -1956,7 +2026,7 @@ func adminsetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		login := getLoginUser(r, db)
-		if login.Userid == -1 || login.Active == 0 {
+		if login.Userid == -1 || !login.Active {
 			log.Printf("usersettings: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -1975,7 +2045,7 @@ func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<p>%s</p>\n", login.Username)
 
 		fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
-		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">rename</a>\n", login.Userid)
+		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">settings</a>\n", login.Userid)
 		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">set password</a>\n", login.Userid)
 		fmt.Fprintf(w, "</ul>\n")
 		fmt.Fprintf(w, "</li>\n")
@@ -2019,8 +2089,8 @@ func newUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				}
 
 				hashedPassword := hashPassword(password)
-				s := "INSERT INTO user (username, password, active) VALUES (?, ?, ?);"
-				_, err := sqlexec(db, s, username, hashedPassword, 1)
+				s := "INSERT INTO user (username, password, active, mdeditor) VALUES (?, ?, ?, ?);"
+				_, err := sqlexec(db, s, username, hashedPassword, 1, 0)
 				if err != nil {
 					log.Printf("DB error creating user: %s\n", err)
 					errmsg = "A problem occured. Please try again."
@@ -2046,18 +2116,18 @@ func newUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "</div>\n")
 		}
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>username</label>\n")
-		fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\" value=\"%s\">\n", username)
+		fmt.Fprintf(w, "<label for=\"username\">username</label>\n")
+		fmt.Fprintf(w, "<input id=\"username\" name=\"username\" type=\"text\" size=\"20\" value=\"%s\">\n", username)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>password</label>\n")
-		fmt.Fprintf(w, "<input name=\"password\" type=\"password\" size=\"30\" value=\"%s\">\n", password)
+		fmt.Fprintf(w, "<label for=\"password\">password</label>\n")
+		fmt.Fprintf(w, "<input id=\"password\" name=\"password\" type=\"password\" size=\"30\" value=\"%s\">\n", password)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>re-enter password</label>\n")
-		fmt.Fprintf(w, "<input name=\"password2\" type=\"password\" size=\"30\" value=\"%s\">\n", password2)
+		fmt.Fprintf(w, "<label for=\"password2\">re-enter password</label>\n")
+		fmt.Fprintf(w, "<input id=\"password2\" name=\"password2\" type=\"password\" size=\"30\" value=\"%s\">\n", password2)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -2076,6 +2146,7 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var errmsg string
 		var username, password, password2 string
+		var mdeditor int
 
 		setpwd := r.FormValue("setpwd") // ?setpwd=1 to prompt for new password
 		userid := idtoi(r.FormValue("userid"))
@@ -2092,9 +2163,9 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		s := "SELECT username FROM user WHERE user_id = ?"
+		s := "SELECT username, mdeditor FROM user WHERE user_id = ?"
 		row := db.QueryRow(s, userid)
-		err := row.Scan(&username)
+		err := row.Scan(&username, &mdeditor)
 		if err == sql.ErrNoRows {
 			// user doesn't exist
 			log.Printf("userid %d doesn't exist\n", userid)
@@ -2104,7 +2175,12 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		if r.Method == "POST" {
 			oldUsername := username
-			username = r.FormValue("username")
+			username = strings.TrimSpace(r.FormValue("username"))
+
+			mdeditor = 0
+			if r.FormValue("useplaintextmdedit") != "" {
+				mdeditor = 1
+			}
 
 			for {
 				// If username was changed,
@@ -2114,10 +2190,15 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 					break
 				}
 
+				if username == "" {
+					errmsg = "Please enter a username."
+					break
+				}
+
 				var err error
 				if setpwd == "" {
-					s := "UPDATE user SET username = ? WHERE user_id = ?"
-					_, err = sqlexec(db, s, username, userid)
+					s := "UPDATE user SET username = ?, mdeditor = ? WHERE user_id = ?"
+					_, err = sqlexec(db, s, username, mdeditor, userid)
 				} else {
 					// ?setpwd=1 to set new password
 					password = r.FormValue("password")
@@ -2129,8 +2210,8 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 						break
 					}
 					hashedPassword := hashPassword(password)
-					s := "UPDATE user SET username = ?, password = ? WHERE user_id = ?"
-					_, err = sqlexec(db, s, username, hashedPassword, userid)
+					s := "UPDATE user SET password = ? WHERE user_id = ?"
+					_, err = sqlexec(db, s, hashedPassword, userid)
 				}
 				if err != nil {
 					log.Printf("DB error updating user: %s\n", err)
@@ -2160,13 +2241,13 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
 			fmt.Fprintf(w, "</div>\n")
 		}
-		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label>username</label>\n")
-		fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\" value=\"%s\">\n", username)
-		fmt.Fprintf(w, "</div>\n")
-
 		// ?setpwd=1 to set new password
 		if setpwd != "" {
+			fmt.Fprintf(w, "<div class=\"control\">\n")
+			fmt.Fprintf(w, "<label>username</label>\n")
+			fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\" value=\"%s\" readonly>\n", username)
+			fmt.Fprintf(w, "</div>\n")
+
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<label>password</label>\n")
 			fmt.Fprintf(w, "<input name=\"password\" type=\"password\" size=\"30\" value=\"%s\">\n", password)
@@ -2175,6 +2256,20 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<label>re-enter password</label>\n")
 			fmt.Fprintf(w, "<input name=\"password2\" type=\"password\" size=\"30\" value=\"%s\">\n", password2)
+			fmt.Fprintf(w, "</div>\n")
+		} else {
+			fmt.Fprintf(w, "<div class=\"control\">\n")
+			fmt.Fprintf(w, "<label>username</label>\n")
+			fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\" value=\"%s\">\n", username)
+			fmt.Fprintf(w, "</div>\n")
+
+			fmt.Fprintf(w, "<div class=\"control row\">\n")
+			if mdeditor == 1 {
+				fmt.Fprintf(w, "<input id=\"useplaintextmdedit\" name=\"useplaintextmdedit\" type=\"checkbox\" value=\"1\" checked>\n")
+			} else {
+				fmt.Fprintf(w, "<input id=\"useplaintextmdedit\" name=\"useplaintextmdedit\" type=\"checkbox\" value=\"1\">\n")
+			}
+			fmt.Fprintf(w, "<label for=\"useplaintextmdedit\">Use plain text editor for notes and replies</label>\n")
 			fmt.Fprintf(w, "</div>\n")
 		}
 
@@ -2421,7 +2516,7 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "  </ul>\n")
 		//		fmt.Fprintf(w, "<p><a href=\"/newuser/\">Create new user</a></p>\n")
 		fmt.Fprintf(w, "</li>\n")
-		s := "SELECT user_id, username, active FROM user ORDER BY active DESC, username"
+		s := "SELECT user_id, username, active, mdeditor FROM user ORDER BY active DESC, username"
 		rows, err := db.Query(s)
 		for {
 			if err != nil {
@@ -2434,20 +2529,20 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 			for rows.Next() {
 				var u User
-				rows.Scan(&u.Userid, &u.Username, &u.Active)
+				rows.Scan(&u.Userid, &u.Username, &u.Active, &u.Mdeditor)
 				fmt.Fprintf(w, "<li>\n")
-				if u.Active == 1 {
+				if u.Active {
 					fmt.Fprintf(w, "<p>%s</p>\n", u.Username)
 				} else {
 					fmt.Fprintf(w, "<p class=\"greyed-text\">(%s)</p>\n", u.Username)
 				}
 
 				fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
-				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">rename</a>\n", u.Userid)
+				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">settings</a>\n", u.Userid)
 				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">set password</a>\n", u.Userid)
 
 				if u.Userid != ADMIN_ID {
-					if u.Active == 1 {
+					if u.Active {
 						fmt.Fprintf(w, "  <li><a href=\"/activateuser?userid=%d&setactive=0\">deactivate</a>\n", u.Userid)
 					} else {
 						fmt.Fprintf(w, "  <li><a href=\"/activateuser?userid=%d&setactive=1\">activate</a>\n", u.Userid)
@@ -2482,7 +2577,7 @@ func printByline(w io.Writer, login *User, noteid int64, noteUser *User, tcreate
 		}
 	}
 	// Show edit/delete links if admin or active user owner of note.
-	if login.Userid == ADMIN_ID || (noteUser.Userid == login.Userid && login.Active == 1) {
+	if login.Userid == ADMIN_ID || (noteUser.Userid == login.Userid && login.Active) {
 		fmt.Fprintf(w, "<li><a href=\"/editnote/?noteid=%d\">Edit</a></li>\n", noteid)
 		fmt.Fprintf(w, "<li><a href=\"/delnote/?noteid=%d\">Delete</a></li>\n", noteid)
 	}
@@ -2497,7 +2592,7 @@ func printFileByline(w io.Writer, login *User, fileid int64, fileUser *User, tcr
 	fmt.Fprintf(w, "</ul>\n")
 
 	// Show edit/delete links if admin or active user owner of file.
-	if login.Userid == ADMIN_ID || (fileUser.Userid == login.Userid && login.Active == 1) {
+	if login.Userid == ADMIN_ID || (fileUser.Userid == login.Userid && login.Active) {
 		fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
 		fmt.Fprintf(w, "<li><a href=\"/editfile/?fileid=%d&%s\">Update</a></li>\n", fileid, qparams)
 		fmt.Fprintf(w, "<li><a href=\"/delfile/?fileid=%d&%s\">Delete</a></li>\n", fileid, qparams)
@@ -2560,12 +2655,12 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	// Menu row 2
 	fmt.Fprintf(w, "<div class=\"smalltext italic\">\n")
-	if login.Userid != -1 && login.Active == 1 {
+	if login.Userid != -1 && login.Active {
 		fmt.Fprintf(w, "<a href=\"/createnote/\">create note</a>\n")
 	}
 	fmt.Fprintf(w, "<a href=\"/\">browse notes</a>\n")
 
-	if login.Userid != -1 && login.Active == 1 {
+	if login.Userid != -1 && login.Active {
 		fmt.Fprintf(w, "<a href=\"/uploadfile/\">upload file</a>\n")
 	}
 	fmt.Fprintf(w, "<a href=\"/browsefiles/\">browse files</a>\n")
@@ -2584,7 +2679,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "<span class=\"smalltext italic\">\n")
 	if login.Userid == ADMIN_ID {
 		fmt.Fprintf(w, "<a href=\"/adminsetup\">setup</a>\n")
-	} else if login.Userid != -1 && login.Active == 1 {
+	} else if login.Userid != -1 && login.Active {
 		fmt.Fprintf(w, "<a href=\"/usersettings\">settings</a>\n")
 	}
 	if login.Userid != -1 {
@@ -2644,40 +2739,29 @@ func printPagingNav(w http.ResponseWriter, baseurl string, offset, limit, nrows 
 func getLoginUser(r *http.Request, db *sql.DB) *User {
 	c, err := r.Cookie("userid")
 	if err != nil {
-		return &User{-1, "", 0}
+		return &User{-1, "", false, 0}
 	}
 
 	userid := idtoi(c.Value)
 	if userid == -1 {
-		return &User{-1, "", 0}
+		return &User{-1, "", false, 0}
 	}
 
-	var username string
-	var active int
-	s := "SELECT username, active FROM user WHERE user_id = ?"
-	row := db.QueryRow(s, userid)
-	err = row.Scan(&username, &active)
-	if err == sql.ErrNoRows {
-		return &User{-1, "", 0}
-	}
-	if err != nil {
-		fmt.Printf("queryUser() db error (%s)\n", err)
-		return &User{-1, "", 0}
-	}
-	return &User{Userid: userid, Username: username, Active: active}
+	u := queryUser(db, userid)
+	return u
 }
 
 func queryUser(db *sql.DB, userid int64) *User {
 	var u User
-	s := "SELECT user_id, username, active FROM user WHERE user_id = ?"
+	s := "SELECT user_id, username, active, mdeditor FROM user WHERE user_id = ?"
 	row := db.QueryRow(s, userid)
-	err := row.Scan(&u.Userid, &u.Username, &u.Active)
+	err := row.Scan(&u.Userid, &u.Username, &u.Active, &u.Mdeditor)
 	if err == sql.ErrNoRows {
-		return &User{-1, "", 0}
+		return &User{-1, "", false, 0}
 	}
 	if err != nil {
 		fmt.Printf("queryUser() db error (%s)\n", err)
-		return &User{-1, "", 0}
+		return &User{-1, "", false, 0}
 	}
 	return &u
 }
@@ -2703,7 +2787,7 @@ func querySite(db *sql.DB) *Site {
 }
 
 func hasPageAccess(u *User, site *Site) bool {
-	if site.RequireLoginForPageview && (u.Userid <= 0 || u.Active == 0) {
+	if site.RequireLoginForPageview && (u.Userid <= 0 || !u.Active) {
 		return false
 	}
 	return true
