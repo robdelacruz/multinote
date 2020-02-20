@@ -2025,11 +2025,34 @@ func adminsetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var errmsg string
+		var mdeditor int
+
 		login := getLoginUser(r, db)
 		if login.Userid == -1 || !login.Active {
 			log.Printf("usersettings: no user or inactive user logged in\n")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
+		}
+
+		if r.Method == "POST" {
+			mdeditor = 0
+			if r.FormValue("useplaintextmdedit") != "" {
+				mdeditor = 1
+			}
+
+			for {
+				s := "UPDATE user SET mdeditor = ? WHERE user_id = ?"
+				_, err := sqlexec(db, s, mdeditor, login.Userid)
+				if err != nil {
+					log.Printf("DB error updating user: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
 		}
 
 		w.Header().Set("Content-Type", "text/html")
@@ -2038,19 +2061,30 @@ func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
 		fmt.Fprintf(w, "<section class=\"main-content\">\n")
-		fmt.Fprintf(w, "<h2 class=\"heading doc-title\">User</h2>\n")
-		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
-
-		fmt.Fprintf(w, "<li>\n")
-		fmt.Fprintf(w, "<p>%s</p>\n", login.Username)
-
-		fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
-		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">settings</a>\n", login.Userid)
-		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">set password</a>\n", login.Userid)
+		fmt.Fprintf(w, "<h2 class=\"heading doc-title\">User Settings</h2>\n")
+		if errmsg != "" {
+			fmt.Fprintf(w, "<div class=\"control\">\n")
+			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
+			fmt.Fprintf(w, "</div>\n")
+		}
+		fmt.Fprintf(w, "<ul class=\"vertical-list light-text\">\n")
+		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">change username</a>\n", login.Userid)
+		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">change password</a>\n", login.Userid)
 		fmt.Fprintf(w, "</ul>\n")
-		fmt.Fprintf(w, "</li>\n")
 
-		fmt.Fprintf(w, "</ul>\n")
+		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/usersettings/\" method=\"post\">\n")
+		fmt.Fprintf(w, "<div class=\"control row\">\n")
+		if login.Mdeditor == 1 {
+			fmt.Fprintf(w, "<input id=\"useplaintextmdedit\" name=\"useplaintextmdedit\" type=\"checkbox\" value=\"1\" checked>\n")
+		} else {
+			fmt.Fprintf(w, "<input id=\"useplaintextmdedit\" name=\"useplaintextmdedit\" type=\"checkbox\" value=\"1\">\n")
+		}
+		fmt.Fprintf(w, "<label for=\"useplaintextmdedit\">Use plain text editor for notes and replies</label>\n")
+		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<button class=\"submit\">apply</button>\n")
+		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</form>\n")
 		fmt.Fprintf(w, "</section>\n")
 
 		printPageSidebar(db, w, querySite(db))
@@ -2146,7 +2180,6 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var errmsg string
 		var username, password, password2 string
-		var mdeditor int
 
 		setpwd := r.FormValue("setpwd") // ?setpwd=1 to prompt for new password
 		userid := idtoi(r.FormValue("userid"))
@@ -2163,9 +2196,9 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		s := "SELECT username, mdeditor FROM user WHERE user_id = ?"
+		s := "SELECT username FROM user WHERE user_id = ?"
 		row := db.QueryRow(s, userid)
-		err := row.Scan(&username, &mdeditor)
+		err := row.Scan(&username)
 		if err == sql.ErrNoRows {
 			// user doesn't exist
 			log.Printf("userid %d doesn't exist\n", userid)
@@ -2176,11 +2209,6 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		if r.Method == "POST" {
 			oldUsername := username
 			username = strings.TrimSpace(r.FormValue("username"))
-
-			mdeditor = 0
-			if r.FormValue("useplaintextmdedit") != "" {
-				mdeditor = 1
-			}
 
 			for {
 				// If username was changed,
@@ -2197,8 +2225,8 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 				var err error
 				if setpwd == "" {
-					s := "UPDATE user SET username = ?, mdeditor = ? WHERE user_id = ?"
-					_, err = sqlexec(db, s, username, mdeditor, userid)
+					s := "UPDATE user SET username = ? WHERE user_id = ?"
+					_, err = sqlexec(db, s, username, userid)
 				} else {
 					// ?setpwd=1 to set new password
 					password = r.FormValue("password")
@@ -2243,7 +2271,7 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 		// ?setpwd=1 to set new password
 		if setpwd != "" {
-			fmt.Fprintf(w, "<div class=\"control\">\n")
+			fmt.Fprintf(w, "<div class=\"control displayonly\">\n")
 			fmt.Fprintf(w, "<label>username</label>\n")
 			fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\" value=\"%s\" readonly>\n", username)
 			fmt.Fprintf(w, "</div>\n")
@@ -2261,15 +2289,6 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<label>username</label>\n")
 			fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\" value=\"%s\">\n", username)
-			fmt.Fprintf(w, "</div>\n")
-
-			fmt.Fprintf(w, "<div class=\"control row\">\n")
-			if mdeditor == 1 {
-				fmt.Fprintf(w, "<input id=\"useplaintextmdedit\" name=\"useplaintextmdedit\" type=\"checkbox\" value=\"1\" checked>\n")
-			} else {
-				fmt.Fprintf(w, "<input id=\"useplaintextmdedit\" name=\"useplaintextmdedit\" type=\"checkbox\" value=\"1\">\n")
-			}
-			fmt.Fprintf(w, "<label for=\"useplaintextmdedit\">Use plain text editor for notes and replies</label>\n")
 			fmt.Fprintf(w, "</div>\n")
 		}
 
@@ -2514,7 +2533,6 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "  <ul class=\"line-menu finetext\">\n")
 		fmt.Fprintf(w, "    <li><p><a href=\"/newuser/\">Create new user</a></p></li>\n")
 		fmt.Fprintf(w, "  </ul>\n")
-		//		fmt.Fprintf(w, "<p><a href=\"/newuser/\">Create new user</a></p>\n")
 		fmt.Fprintf(w, "</li>\n")
 		s := "SELECT user_id, username, active, mdeditor FROM user ORDER BY active DESC, username"
 		rows, err := db.Query(s)
@@ -2538,7 +2556,7 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				}
 
 				fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
-				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">settings</a>\n", u.Userid)
+				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">change username</a>\n", u.Userid)
 				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">set password</a>\n", u.Userid)
 
 				if u.Userid != ADMIN_ID {

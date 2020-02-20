@@ -327,6 +327,9 @@ img.thumbnail {
     color: #444;
     font-style: italic;
 }
+.light-text, .light-text a {
+    color: #888;
+}
 .simplebox {
     border: 1px solid #888;
     border-radius: 5px;
