@@ -530,7 +530,7 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 func printSimpleMDECode(w http.ResponseWriter, textid string) {
 	fmt.Fprintf(w, "<script>\n")
-	fmt.Fprintf(w, "let mde = new SimpleMDE({element: document.querySelector(\"#%s\")});\n", textid)
+	fmt.Fprintf(w, "let mde = new SimpleMDE({element: document.querySelector(\"#%s\"), indentWithTabs: false});\n", textid)
 	fmt.Fprintf(w, "</script>\n")
 }
 
@@ -2036,9 +2036,9 @@ func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if r.Method == "POST" {
-			mdeditor = 0
+			mdeditor = SIMPLEMDE_EDIT
 			if r.FormValue("useplaintextmdedit") != "" {
-				mdeditor = 1
+				mdeditor = TEXTAREA_EDIT
 			}
 
 			for {
@@ -2074,7 +2074,7 @@ func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/usersettings/\" method=\"post\">\n")
 		fmt.Fprintf(w, "<div class=\"control row\">\n")
-		if login.Mdeditor == 1 {
+		if login.Mdeditor == TEXTAREA_EDIT {
 			fmt.Fprintf(w, "<input id=\"useplaintextmdedit\" name=\"useplaintextmdedit\" type=\"checkbox\" value=\"1\" checked>\n")
 		} else {
 			fmt.Fprintf(w, "<input id=\"useplaintextmdedit\" name=\"useplaintextmdedit\" type=\"checkbox\" value=\"1\">\n")
