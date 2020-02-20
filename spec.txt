@@ -1,9 +1,8 @@
 groupnotes - Inspired by PLATO Notes.
 
 Additional functionality to consider adding:
-- option for wysiwyg markdown editor (https://github.com/sparksuite/simplemde-markdown-editor)
-- add 'quote/reply' button to each reply
 - add site setting: allow any user (except guest) to modify notes/files
+- add theme selection: classic, night, day, pastel
 
 color palette:
 bg: #1b1b1b
