@@ -12,6 +12,54 @@ body {
     /* background-color: #1b1b1b; */
     /* color: #c1c1c1; */
 }
+
+/* themes */
+.night {
+    background-color: #1b1b1b;
+    color: #c1c1c1;
+}
+.day {
+    background-color: #fff;
+    color: #000;
+}
+.day a {
+    color: #000;
+}
+.day .doc-title, .day .doc-title a {
+    color: #000;
+}
+.day .finetext, .finetext a {
+    color: #000;
+}
+.day .main-sidebar {
+    color: #000;
+}
+.day .dotted {
+    color: #000;
+}
+.day .error {
+    color: #000;
+}
+.day .success {
+    color: #000;
+}
+.day .displayonly input, .day .displayonly textarea {
+    background-color: #aaa;
+}
+.day .warning {
+}
+.day .highlight {
+    color: #d6deeb;
+    background-color: #2d2c5d;
+}
+.day .greyed-text {
+    color: #444;
+    font-style: italic;
+}
+.day .light-text, .light-text a {
+    color: #888;
+}
+
 .main {
     display: flex;
     flex-wrap: wrap;
@@ -184,6 +232,9 @@ a {
 }
 .simpleform textarea {
     width: 100%;
+}
+.simpleform select {
+    padding: 0 1em;
 }
 select {
     padding: 0 0.5em;

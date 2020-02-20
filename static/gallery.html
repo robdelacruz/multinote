@@ -6,7 +6,7 @@
 <title>Website</title>
 <link rel="stylesheet" type="text/css" href="style.css">
 </head>
-<body>
+<body class="day">
 <header class="masthead">
     <nav class="navbar">
         <div>
@@ -22,7 +22,28 @@
     <p class="finetext">I reserve the right to be biased, it makes life more interesting.</p>
 </header>
 <div class="flex-row">
-<section class="page-main spaceright">
+<section class="main-content spaceright">
+
+<p class="defn">selectbox:</p>
+<form class="simpleform" action="." method="post">
+    <div class="control">
+        <label for="title">title</label>
+        <input id="title" name="title" type="text" size="50" value="">
+    </div>
+    <div class="control row">
+        <input id="chka" name="chka" type="checkbox" value="1"> 
+        <label for="chka">Require login to view pages</label>
+    </div>
+    <div class="control">
+        <label for="theme">theme</label>
+        <select id="theme" name="theme">
+            <option value="classic">classic</option>
+            <option value="night">night</option>
+            <option value="day">day</option>
+            <option value="pastel">pastel</option>
+        </select>
+    </div>
+</form>
 
 <p class="defn">line-menu:</p>
 <ul class="line-menu finetext">
@@ -218,7 +239,7 @@
 
 </section>
 
-<section class="page-sidebar">
+<section class="main-sidebar">
     <div class="simplebox compact">
         <h2>About GroupNotes</h2>
         <p>GroupNotes is inspired by <a href="https://thinkofit.com/plato/dwplato.htm#origdev">PLATO Notes</a>, the communication system originally created by David Woolley in 1973, which was the precursor to today's web-based message boards.</p>
@@ -227,6 +248,22 @@
     </div>
 </section>
 <script>
+let theme = document.querySelector("#theme");
+theme.addEventListener("input", function(e) {
+    let themeName = e.target.value;
+
+    let body = document.querySelector("body");
+    clearClasses(body, ["classic", "night", "day", "pastel"]);
+    body.classList.add(themeName);
+});
+
+function clearClasses(el, classes) {
+    for (let i=0; i < classes.length; i++) {
+        let sclass = classes[i];
+        el.classList.remove(sclass);
+    }
+}
+
 </script>
 </body>
 </html>
