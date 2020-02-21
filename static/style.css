@@ -20,6 +20,8 @@ body {
 }
 .day {
     background-color: #fff;
+    background-color: #f9e176;
+    background-color: #feda79;
     color: #000;
 }
 .day a {
@@ -183,7 +185,7 @@ a {
     padding-bottom: 0.5em;
 }
 .vertical-list p {
-    margin: 0;
+    margin: 0 0 0.2em;
     padding: 0;
 }
 
@@ -195,7 +197,7 @@ a {
     font-size: 1em;
 }
 .compact > * {
-    margin: 0.2em 0 0.5em;
+    margin: 0.2em 0 0.2em;
 }
 
 .error {
@@ -368,6 +370,9 @@ img.thumbnail {
 
 .width-twothirds {
     width: 67%;
+}
+.inline {
+    display: inline;
 }
 
 .highlight {

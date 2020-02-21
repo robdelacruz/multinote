@@ -10,7 +10,7 @@ DROP TABLE IF EXISTS file;
 --   reply = 1
 --   file = 2
 
-CREATE TABLE entry (entry_id INTEGER PRIMARY KEY NOT NULL, thing INTEGER NOT NULL, title TEXT, body TEXT, createdt TEXT, user_id INTEGER, parent_id INTEGER, FOREIGN KEY(user_id) REFERENCES user, FOREIGN KEY(parent_id) REFERENCES entry(entry_id));
+CREATE TABLE entry (entry_id INTEGER PRIMARY KEY NOT NULL, thing INTEGER NOT NULL, title TEXT, summary TEXT, body TEXT, createdt TEXT, user_id INTEGER, parent_id INTEGER, FOREIGN KEY(user_id) REFERENCES user, FOREIGN KEY(parent_id) REFERENCES entry(entry_id));
 
 CREATE TABLE file (entry_id INTEGER PRIMARY KEY NOT NULL, folder TEXT, content BLOB, FOREIGN KEY(entry_id) REFERENCES entry);
 

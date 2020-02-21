@@ -9,14 +9,7 @@ INSERT INTO user (username, password, active, mdeditor) VALUES ('robdelacruz', '
 INSERT INTO user (username, password, active, mdeditor) VALUES ('lky', '', 1, 1);
 INSERT INTO user (username, password, active, mdeditor) VALUES ('abc', '', 0, 1);
 
-INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Aimee Teagarden', 'All about Aimee Teagarden Hallmark show', '2019-12-01T14:00:00+08:00', 3);
-INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Emma Fielding', 'All about Emma Fielding Hallmark show', '2019-12-02T14:00:00+08:00', 3);
-INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Mystery 101', 'All about Mystery 101 Hallmark show', '2019-12-05T14:00:00+08:00', 3);
-INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'test note', 'test note 1', '2019-12-05T14:00:00+08:00', 3);
-INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'test note 2', 'test note 2', '2019-12-05T14:00:00+08:00', 3);
-INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'test note 3', 'test note 3', '2019-12-05T14:00:00+08:00', 3);
-
-INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'markdown test', '# Gettysburg Address
+INSERT INTO entry (thing, title, summary, body, createdt, user_id) VALUES (0, 'Gettysburg Address', 'Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty...', '# Gettysburg Address
 
 *Versions*
 
@@ -47,7 +40,7 @@ November 19, 1863
 [source](http://www.abrahamlincolnonline.org/lincoln/speeches/gettysburg.htm)
 ', '2019-12-05T14:00:00+08:00', 3);
 
-INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'code test', '## Hello, World
+INSERT INTO entry (thing, title, summary, body, createdt, user_id) VALUES (0, 'Hello, World', 'Source code for Hello, World in C', '## Hello, World
 
 Code for Hello, World:
 
@@ -58,7 +51,7 @@ Code for Hello, World:
     }
 ', '2019-12-05T14:00:00+08:00', 3);
 
-INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Lee Kuan Yew Quotes', '### Lee Kuan Yew Quotes:
+INSERT INTO entry (thing, title, summary, body, createdt, user_id) VALUES (0, 'Lee Kuan Yew Quotes', 'some LKY quotes', '### Lee Kuan Yew Quotes:
 
 >"If there was one formula for our success,it was that we were constantly studying how to make things work,or how to make them work better."
 
@@ -68,9 +61,9 @@ INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (0, 'Lee Kuan Y
 
 ', '2019-12-05T14:00:00+08:00', 3);
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Comanche',  
+'Comanche', '', 
 'You need to straighten your posture and suck in your gut
 You need to pull back your shoulders and tighten your butt
 Come comanche, comanche, comanche, come oh
@@ -89,9 +82,9 @@ If you want to have cities
 If you want to have cities, you''ve got to build roads' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Ruby Sees All',  
+'Ruby Sees All', '',  
 'Do you think she''s swimming in your lies?
 Do you think it''s all just murky green?
 Don''t you think that she would realize?
@@ -115,9 +108,9 @@ Don''t you think it''s time to swim to shore?
 [Chorus]'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Up So Close',  
+'Up So Close', '',  
 'Up so close
 I never get to see your face
 Microscope
@@ -154,9 +147,9 @@ Microscope
 I''m never sure if it''s still you'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Pentagram',  
+'Pentagram', '',  
 'Your pentagram is down below our floor
 Your naked body shimmers in the night
 Dancing and chanting in a sacrificial rite
@@ -181,9 +174,9 @@ In the first place
 Ahh, in the first place'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Jolene',  
+'Jolene', '',  
 'Well, Jolene unlocked the thick breezeway door
 Like she''d done one hundred times before
 Jolene smoothed her dark hair in the mirror
@@ -227,9 +220,9 @@ Yeah
 Oh yeah'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Haze of Love',  
+'Haze of Love', '',  
 'It''s 3 o''clock in the morning
 Or maybe it''s 4
 I''m thinking of you
@@ -270,9 +263,9 @@ For days and days and days
 I''m in a haze of love'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'You Part the Waters',  
+'You Part the Waters', '',  
 'You part the waters
 The same ones that I''m drowning in
 You lead your casual slaughters
@@ -298,9 +291,9 @@ You don''t even play piano
 But you part the waters'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Is This Love?',  
+'Is This Love?', '',  
 'I can''t believe it''s true
 I can''t believe that you
 Don''t want me anymore
@@ -340,9 +333,9 @@ Or should I, should I
 Should I close the door?'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Jesus Wrote a Blank Check',  
+'Jesus Wrote a Blank Check', '',  
 'Jesus wrote a blank check
 One I haven''t cashed quite yet
 I hope I got a little more time
@@ -383,9 +376,9 @@ Still I burn this earthen fire
 Still I burn this earthen fire'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Rock ''N'' Roll Lifestyle',  
+'Rock ''N'' Roll Lifestyle', '',  
 'Well, your CD collection looks shiny and costly
 How much did you pay for your Bad Moto Guzzi?
 And how much did you spend on your black leather jacket
@@ -433,9 +426,9 @@ Excess ain''t rebellion
 You drinkin'', you''re drinking what they''re... sellin'''
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'I Bombed Korea',  
+'I Bombed Korea', '',  
 'I bombed Korea every night
 My engines sang into the salty sky
 I didn''t know if I would live or die
@@ -461,9 +454,9 @@ We didn''t know if we would live or die
 I bombed Korea every night'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Mr. Mastodon Farm',  
+'Mr. Mastodon Farm', '',  
 'Birds fall from the window ledge above mine
 Then they flap their wings at the last second
 
@@ -501,9 +494,9 @@ Mr. Mastodon Farm
 Cuts swatches out of all material'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Ain''t No Good',  
+'Ain''t No Good', '',  
 'She''s gonna hand you a red-headed Gabriel
 Coming from the bar in a plastic tie
 He''s gonna swing from the tree of life
@@ -536,9 +529,9 @@ Watch out, she ain''t no good for you
 Watch out, she ain''t no good for you'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Frank Sinatra',  
+'Frank Sinatra', '',  
 '[Hook]
 We know of an ancient radiation
 That haunts dismembered constellations
@@ -562,9 +555,9 @@ That haunts dismembered constellations
 A faintly glimmering radio station'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'The Distance',  
+'The Distance', '',  
 '[Verse 1]
 Reluctantly crouched at the starting line
 Engines pumping and thumping in time
@@ -624,9 +617,9 @@ He''s going for speed
 He''s going the distance' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Friend is a Four Letter Word',  
+'Friend is a Four Letter Word', '',  
 'To me, coming from you
 Friend is a four letter word
 End is the only part of the word
@@ -653,9 +646,9 @@ But to me, coming from you
 Friend is a four letter word'
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Open Book',  
+'Open Book', '',  
 'She''s writing, she''s writing
 She''s writing a novel
 She''s writing, she''s weaving
@@ -701,9 +694,9 @@ But you don''t know which page to turn to, do you?
 Do you? Do you? Do you?' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Daria',  
+'Daria', '',  
 'When you tried to kiss me
 I only bit your tongue
 When you tried to get me together
@@ -747,9 +740,9 @@ I won''t be soothed
 I won''t be soothed' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Race Car Ya-Yas',  
+'Race Car Ya-Yas', '',  
 'The land of race car ya-yas
 The land where you can''t change lanes
 The land where large, fuzzy dice
@@ -769,9 +762,9 @@ The land of race car ya-yas
 Race car ya-yas' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'I Will Survive',  
+'I Will Survive', '',  
 '[Verse 1]
 At first I was afraid
 I was petrified
@@ -857,9 +850,9 @@ Da, da, da, da, dada dada dada dada
 Oh no' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Stickshifts and Safetybelts',  
+'Stickshifts and Safetybelts', '',  
 '[Chorus]
 Stick shifts and safety belts
 Bucket seats have all got to go
@@ -888,9 +881,9 @@ Next to me
 [Chorus]' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Perhaps, Perhaps, Perhaps',  
+'Perhaps, Perhaps, Perhaps', '',  
 'You won''t admit you love me
 And so
 How am I ever
@@ -932,9 +925,9 @@ Perhaps, perhaps, perhaps
 Perhaps, perhaps, perhaps' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'It''s Coming Down',  
+'It''s Coming Down', '',  
 '[Chorus]
 It''s coming down
 It''s coming down
@@ -984,9 +977,9 @@ It''s coming down
 It''s coming down' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Nugget',  
+'Nugget', '',  
 'Okay alright, uh no
 This one, this one, this one
 
@@ -1068,9 +1061,9 @@ I don''t wanna
 (Yea, one two one two one)' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'She''ll Come Back to Me',  
+'She''ll Come Back to Me', '',  
 '[Verse 1]
 Last night I said to her
 I didn''t want to live inside a lie
@@ -1105,9 +1098,9 @@ She''ll come back to me
 She''ll come back to me' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Italian Leather Sofa',  
+'Italian Leather Sofa', '',  
 '[Verse 1]
 She doesn''t care whether or not he''s an island
 She doesn''t care just as long as his ship''s coming in
@@ -1159,9 +1152,9 @@ She''s got a silk dress and healthy breasts
 That bounce on his Italian leather sofa' 
 );
 
-INSERT INTO entry (thing, createdt, user_id, title, body) 
+INSERT INTO entry (thing, createdt, user_id, title, summary, body) 
 VALUES (0, '2020-02-01T14:00:00+08:00', 3, 
-'Sad Songs & Waltzes',  
+'Sad Songs & Waltzes', '',  
 'I''m writing a song all about you
 A true song as real as my tears
 But you''ve no need to fear it

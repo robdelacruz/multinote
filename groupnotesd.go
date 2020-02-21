@@ -259,7 +259,7 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<div class=\"main\">\n")
 		fmt.Fprintf(w, "<section class=\"main-content\">\n")
 		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
-		s := `SELECT entry_id, title, body, createdt, user.user_id, username, 
+		s := `SELECT entry_id, title, summary, createdt, user.user_id, username, 
 (SELECT COUNT(*) FROM entry AS reply WHERE reply.thing = 1 AND reply.parent_id = note.entry_id) AS numreplies, 
 (SELECT COALESCE(MAX(reply.createdt), '') FROM entry AS reply where reply.thing = 1 AND reply.parent_id = note.entry_id) AS maxreplydt 
 FROM entry AS note 
@@ -275,15 +275,19 @@ LIMIT ? OFFSET ?`
 		nrows := 0
 		for rows.Next() {
 			var noteid int64
-			var title, body, createdt, maxreplydt string
+			var title, summary, createdt, maxreplydt string
 			var noteUser User
 			var numreplies int
-			rows.Scan(&noteid, &title, &body, &createdt, &noteUser.Userid, &noteUser.Username, &numreplies, &maxreplydt)
+			rows.Scan(&noteid, &title, &summary, &createdt, &noteUser.Userid, &noteUser.Username, &numreplies, &maxreplydt)
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
 			fmt.Fprintf(w, "<li>\n")
-			fmt.Fprintf(w, "<p class=\"doc-title\"><a href=\"/note/%d\">%s</a></p>\n", noteid, title)
-
+			fmt.Fprintf(w, "<div class=\"doc-title\"><a href=\"/note/%d\">%s</a></div>\n", noteid, title)
+			if summary != "" {
+				fmt.Fprintf(w, "<div class=\"smalltext italic\">\n")
+				fmt.Fprintf(w, parseMarkdown(summary))
+				fmt.Fprintf(w, "</div>\n")
+			}
 			printByline(w, login, noteid, &noteUser, tcreatedt, numreplies)
 			fmt.Fprintf(w, "</li>\n")
 
@@ -313,17 +317,17 @@ func noteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 		}
 
-		s := `SELECT title, body, createdt, user.user_id, username, (SELECT COUNT(*) FROM entry as reply WHERE reply.thing = 1 AND reply.parent_id = note.entry_id) AS numreplies 
+		s := `SELECT title, summary, body, createdt, user.user_id, username, (SELECT COUNT(*) FROM entry as reply WHERE reply.thing = 1 AND reply.parent_id = note.entry_id) AS numreplies 
 FROM entry AS note 
 LEFT OUTER JOIN user ON note.user_id = user.user_id
 WHERE note.entry_id = ? AND note.thing = 0 
 ORDER BY createdt DESC;`
 		row := db.QueryRow(s, noteid)
 
-		var title, body, createdt string
+		var title, summary, body, createdt string
 		var noteUser User
 		var numreplies int
-		err := row.Scan(&title, &body, &createdt, &noteUser.Userid, &noteUser.Username, &numreplies)
+		err := row.Scan(&title, &summary, &body, &createdt, &noteUser.Userid, &noteUser.Username, &numreplies)
 		if err == sql.ErrNoRows {
 			// note doesn't exist so redirect to notes list page.
 			log.Printf("display note: noteid %d doesn't exist\n", noteid)
@@ -350,6 +354,11 @@ ORDER BY createdt DESC;`
 		tcreatedt, err := time.Parse(time.RFC3339, createdt)
 		if err != nil {
 			tcreatedt = time.Now()
+		}
+		if summary != "" {
+			fmt.Fprintf(w, "<div class=\"smalltext italic compact\">\n")
+			fmt.Fprintf(w, parseMarkdown(summary))
+			fmt.Fprintf(w, "</div>\n")
 		}
 		printByline(w, login, noteid, &noteUser, tcreatedt, numreplies)
 
@@ -452,7 +461,7 @@ ORDER BY createdt DESC;`
 func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var errmsg string
-		var title, body string
+		var title, summary, body string
 
 		login := getLoginUser(r, db)
 		if login.Userid == -1 || !login.Active {
@@ -463,12 +472,13 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		if r.Method == "POST" {
 			title = r.FormValue("title")
+			summary = r.FormValue("summary")
 			body = r.FormValue("body")
 			body = strings.ReplaceAll(body, "\r", "") // CRLF => CR
 			createdt := time.Now().Format(time.RFC3339)
 
-			s := "INSERT INTO entry (thing, title, body, createdt, user_id) VALUES (?, ?, ?, ?, ?);"
-			_, err := sqlexec(db, s, NOTE, title, body, createdt, login.Userid)
+			s := "INSERT INTO entry (thing, title, summary, body, createdt, user_id) VALUES (?, ?, ?, ?, ?, ?);"
+			_, err := sqlexec(db, s, NOTE, title, summary, body, createdt, login.Userid)
 			if err != nil {
 				log.Printf("DB error creating note: %s\n", err)
 				errmsg = "A problem occured. Please try again."
@@ -508,7 +518,11 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label for=\"body\">note</label>\n")
+		fmt.Fprintf(w, "<label for=\"summary\">summary</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"summary\" name=\"summary\" rows=\"3\">%s</textarea>\n", summary)
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label for=\"body\">body</label>\n")
 		fmt.Fprintf(w, "<textarea id=\"body\" name=\"body\" rows=\"25\">%s</textarea>\n", body)
 		fmt.Fprintf(w, "</div>\n")
 
@@ -552,12 +566,12 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		s := "SELECT title, body, user_id FROM entry WHERE entry_id = ? AND thing = 0"
+		s := "SELECT title, summary, body, user_id FROM entry WHERE entry_id = ? AND thing = 0"
 		row := db.QueryRow(s, noteid)
 
-		var title, body string
+		var title, summary, body string
 		var noteUserid int64
-		err := row.Scan(&title, &body, &noteUserid)
+		err := row.Scan(&title, &summary, &body, &noteUserid)
 		if err == sql.ErrNoRows {
 			// note doesn't exist so redirect to notes list page.
 			log.Printf("noteid %d doesn't exist\n", noteid)
@@ -575,6 +589,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		if r.Method == "POST" {
 			title = r.FormValue("title")
+			summary = r.FormValue("summary")
 			body = r.FormValue("body")
 			createdt := time.Now().Format(time.RFC3339)
 
@@ -582,8 +597,8 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			// CRLF causes problems in markdown parsing.
 			body = strings.ReplaceAll(body, "\r", "")
 
-			s := "UPDATE entry SET title = ?, body = ?, createdt = ? WHERE entry_id = ? AND thing = 0"
-			_, err = sqlexec(db, s, title, body, createdt, noteid)
+			s := "UPDATE entry SET title = ?, summary = ?, body = ?, createdt = ? WHERE entry_id = ? AND thing = 0"
+			_, err = sqlexec(db, s, title, summary, body, createdt, noteid)
 			if err != nil {
 				log.Printf("DB error updating noteid %d: %s\n", noteid, err)
 				errmsg = "A problem occured. Please try again."
@@ -620,6 +635,10 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<label>title</label>\n")
 		fmt.Fprintf(w, "<input name=\"title\" type=\"text\" size=\"50\" value=\"%s\">\n", title)
 		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label for=\"summary\">summary</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"summary\" name=\"summary\" rows=\"3\">%s</textarea>\n", summary)
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label for=\"body\">note</label>\n")
@@ -660,12 +679,12 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		s := "SELECT title, body, user_id FROM entry WHERE entry_id = ? AND thing = 0"
+		s := "SELECT title, summary, body, user_id FROM entry WHERE entry_id = ? AND thing = 0"
 		row := db.QueryRow(s, noteid)
 
-		var title, body string
+		var title, summary, body string
 		var noteUserid int64
-		err := row.Scan(&title, &body, &noteUserid)
+		err := row.Scan(&title, &summary, &body, &noteUserid)
 		if err == sql.ErrNoRows {
 			// note doesn't exist so redirect to notes list page.
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -722,6 +741,10 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<label class=\"byline\">title</label>\n")
 		fmt.Fprintf(w, "<input name=\"title\" type=\"text\" size=\"50\" readonly value=\"%s\">\n", title)
 		fmt.Fprintf(w, "</div>\n")
+
+		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<label for=\"summary\">summary</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"summary\" name=\"summary\" rows=\"3\">%s</textarea>\n", summary)
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<label class=\"byline\">note</label>\n")
