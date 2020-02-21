@@ -258,7 +258,7 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 		fmt.Fprintf(w, "<div class=\"main\">\n")
 		fmt.Fprintf(w, "<section class=\"main-content\">\n")
-		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
+		fmt.Fprintf(w, "<ul class=\"vertical-list compact\">\n")
 		s := `SELECT entry_id, title, summary, createdt, user.user_id, username, 
 (SELECT COUNT(*) FROM entry AS reply WHERE reply.thing = 1 AND reply.parent_id = note.entry_id) AS numreplies, 
 (SELECT COALESCE(MAX(reply.createdt), '') FROM entry AS reply where reply.thing = 1 AND reply.parent_id = note.entry_id) AS maxreplydt 
@@ -282,7 +282,7 @@ LIMIT ? OFFSET ?`
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
 			fmt.Fprintf(w, "<li>\n")
-			fmt.Fprintf(w, "<div class=\"doc-title\"><a href=\"/note/%d\">%s</a></div>\n", noteid, title)
+			fmt.Fprintf(w, "<h2 class=\"doc-title heading\"><a href=\"/note/%d\">%s</a></h2>\n", noteid, title)
 			if summary != "" {
 				fmt.Fprintf(w, "<div class=\"smalltext italic\">\n")
 				fmt.Fprintf(w, parseMarkdown(summary))

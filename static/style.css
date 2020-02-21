@@ -188,6 +188,9 @@ a {
     margin: 0 0 0.2em;
     padding: 0;
 }
+.vertical-list.compact .heading {
+    margin: 0;
+}
 
 .dotted {
     border: dashed 1px;
