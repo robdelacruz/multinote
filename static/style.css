@@ -314,21 +314,20 @@ th.action, td.action {
     flex-wrap: wrap;
     flex-direction: row;
     justify-content: space-between;
+    justify-content: flex-start;
 }
 .file-item {
     border: 1px solid #888;
     padding: 0.2em;
-    flex-basis: 11em;
-    width: 200px;
-    height: 200px;
+    flex-basis: 170px;
+    flex-grow: 0;
+    flex-shrink: 0;
     overflow: hidden;
     margin-bottom: 1em;
 }
 .file-item .heading {
     font-size: 0.8em;
     word-break: break-all;
-    /*max-height: 2.4em;*/
-    /*overflow: hidden;*/
 }
 .file-item img.preview {
     max-width: 100%;
@@ -349,7 +348,7 @@ th.action, td.action {
     max-height: 1.2em;
 }
 img.thumbnail {
-    max-width: 200px;
+    max-width: 170px;
 }
 
 .flex {
