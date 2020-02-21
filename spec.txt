@@ -3,6 +3,9 @@ groupnotes - Inspired by PLATO Notes.
 Additional functionality to consider adding:
 - add site setting: allow any user (except guest) to modify notes/files
 - add theme selection: classic, night, day, pastel
+- add a customizable about page
+- add user notes list page of all notes posted by user
+- add categories, tags (?) and cat/tags notes list page
 
 color palette:
 bg: #1b1b1b
