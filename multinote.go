@@ -2397,7 +2397,7 @@ func activateUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
 			fmt.Fprintf(w, "</div>\n")
 		}
-		fmt.Fprintf(w, "<div class=\"control\">\n")
+		fmt.Fprintf(w, "<div class=\"control displayonly\">\n")
 		fmt.Fprintf(w, "<label>username</label>\n")
 		fmt.Fprintf(w, "<input name=\"username\" type=\"text\" size=\"20\" readonly value=\"%s\">\n", username)
 		fmt.Fprintf(w, "</div>\n")
@@ -2763,20 +2763,20 @@ func printPageSidebar(db *sql.DB, w http.ResponseWriter, site *Site) {
 }
 
 func printPagingNav(w http.ResponseWriter, baseurl string, offset, limit, nrows int) {
-	fmt.Fprintf(w, "<div class=\"flex-row text-italic text-xs\">\n")
+	fmt.Fprintf(w, "<div class=\"flex-row text-italic text-xs mt-xl\">\n")
 	if offset > 0 {
 		prevOffset := offset - limit
 		if prevOffset < 0 {
 			prevOffset = 0
 		}
 		prevLink := fmt.Sprintf("%s&offset=%d&limit=%d", baseurl, prevOffset, limit)
-		fmt.Fprintf(w, "  <p><a class=\"text-xs text-fg-3\" href=\"%s\">Previous</a></p>\n", prevLink)
+		fmt.Fprintf(w, "  <p class=\"text-xs text-fg-3\"><a href=\"%s\">Previous</a></p>\n", prevLink)
 	} else {
 		fmt.Fprintf(w, "  <p></p>\n")
 	}
 	if nrows == limit {
 		moreLink := fmt.Sprintf("%s&offset=%d&limit=%d", baseurl, offset+limit, limit)
-		fmt.Fprintf(w, "  <p><a class=\"text-xs text-fg-3\" href=\"%s\">More</a></p>\n", moreLink)
+		fmt.Fprintf(w, "  <p class=\"text-xs text-fg-3\"><a href=\"%s\">More</a></p>\n", moreLink)
 	}
 	fmt.Fprintf(w, "</div>\n")
 }
