@@ -5,9 +5,6 @@ body {
     font-family: "Helvetica", "Arial", sans-serif;
     background-color: var(--bg-1);
 }
-.main {
-    padding-top: 1rem;
-}
 /*
 colors:
     background-color: #011627;
@@ -89,6 +86,13 @@ a {
 .text-center {text-align: center;}
 .text-justify {text-align: justify;}
 
+.underline {text-decoration: underline;}
+.no-underline {text-decoration: none;}
+.uppercase {text-transform: uppercase;}
+
+.main {
+    padding-top: 1rem;
+}
 .body {
     margin: 0 auto 1rem;
     padding: 0;
@@ -99,6 +103,7 @@ a {
 }
 .body .col1 {
     flex-basis: 67%;
+    margin-right: 1rem;
 }
 .body .col2 {
     flex-basis: 33%;
@@ -110,12 +115,6 @@ p, ul, li, h1, h2, h3, h4 {
 }
 a, a:visited {
     color: inherit;
-}
-.underline {
-    text-decoration: underline;
-}
-.no-underline {
-    text-decoration: none;
 }
 
 .flex-row {
@@ -166,47 +165,6 @@ a, a:visited {
 }
 .byline a {
     text-decoration: none;
-}
-
-.entry {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-}
-.entry .col0 {
-    flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: 2rem;
-    padding-top: 0rem;
-    padding-right: 0.50rem;
-
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-}
-.entry .col0-comment {
-    flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: 1rem;
-}
-.entry .col1 {
-    flex-grow: 1;
-}
-.upvote {
-    display: block;
-}
-.upvote svg {
-    fill: var(--fade-1);
-    stroke: var(--fade-1);
-    width: 10px;
-}
-.upvote.selfvote svg {
-    fill: var(--fg-1);
-}
-.upvote:hover {
-    cursor: pointer;
-}
-.entry-comments {
 }
 
 .masthead {
@@ -280,5 +238,11 @@ select {
 }
 .displayonly input, .displayonly textarea {
     background-color: #aaa;
+}
+
+/* multinote-specific styles */
+hr {
+    border: dashed 1px;
+    color: var(--fade-1);
 }
 

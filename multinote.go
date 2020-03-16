@@ -347,32 +347,32 @@ ORDER BY createdt DESC;`
 		}
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
-		fmt.Fprintf(w, "<article class=\"content\">\n")
-		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/note/%d\">%s</a></h1>\n", noteid, title)
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading text-fg-2 mb-xs\"><a class=\"no-underline\" href=\"/note/%d\">%s</a></h1>\n", noteid, title)
 		tcreatedt, err := time.Parse(time.RFC3339, createdt)
 		if err != nil {
 			tcreatedt = time.Now()
 		}
 		if summary != "" {
-			fmt.Fprintf(w, "<div class=\"smalltext italic compact\">\n")
+			fmt.Fprintf(w, "<div class=\"content text-xs text-italic mb-xs\">\n")
 			fmt.Fprintf(w, parseMarkdown(summary))
 			fmt.Fprintf(w, "</div>\n")
 		}
 		printByline(w, login, noteid, &noteUser, tcreatedt, numreplies)
 
+		fmt.Fprintf(w, "<article class=\"content mt-base\">\n")
 		bodyMarkup := parseMarkdown(body)
 		fmt.Fprintf(w, bodyMarkup)
+		fmt.Fprintf(w, "</article>\n")
 
-		fmt.Fprintf(w, "<hr class=\"dotted\">\n")
-		fmt.Fprintf(w, "<p>Replies:</p>\n")
+		fmt.Fprintf(w, "<hr class=\"mt-xl mb-xl\">\n")
+		fmt.Fprintf(w, "<p class=\"mb-base text-fade-1 text-sm text-italic\">Replies:</p>\n")
 
 		s = "SELECT entry_id, body, createdt, user.user_id, username FROM entry AS reply LEFT OUTER JOIN user ON reply.user_id = user.user_id WHERE reply.parent_id = ? AND reply.thing = 1 ORDER BY reply.entry_id"
 		rows, err := db.Query(s, noteid)
 		if err != nil {
 			fmt.Fprintf(w, "<p class=\"error\">Error loading replies</p>\n")
-			fmt.Fprintf(w, "</article>\n")
 			printPageFoot(w)
 			return
 		}
@@ -385,9 +385,10 @@ ORDER BY createdt DESC;`
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 			createdt = tcreatedt.Format("2 Jan 2006")
 
-			fmt.Fprintf(w, "<div class=\"reply compact\">\n")
-			fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
-			fmt.Fprintf(w, "<li><a id=\"reply-%d\">%d.</a> %s</li>\n", replyid, i, replyUser.Username)
+			fmt.Fprintf(w, "<div class=\"reply\">\n")
+			fmt.Fprintf(w, "<a id=\"reply-%d\"></a>\n", replyid)
+			fmt.Fprintf(w, "<ul class=\"line-menu text-xs text-fade-1\">\n")
+			fmt.Fprintf(w, "<li>%d. %s</li>\n", i, replyUser.Username)
 			fmt.Fprintf(w, "<li>%s</li>\n", createdt)
 			// Show edit/delete links if admin or active user owner of note.
 			if login.Userid == ADMIN_ID || (replyUser.Userid == login.Userid && login.Active) {
@@ -395,15 +396,14 @@ ORDER BY createdt DESC;`
 				fmt.Fprintf(w, "<li><a href=\"/delreply/?replyid=%d\">Delete</a></li>\n", replyid)
 			}
 			fmt.Fprintf(w, "</ul>\n")
-			fmt.Fprintf(w, "<div id=\"replybody-%d\">\n", i)
+			fmt.Fprintf(w, "<article class=\"content mt-xs mb-xl\">\n")
 			replybodyMarkup := parseMarkdown(replybody)
 			fmt.Fprintf(w, replybodyMarkup)
-			fmt.Fprintf(w, "</div>\n")
+			fmt.Fprintf(w, "</article>\n")
 			fmt.Fprintf(w, "</div>\n")
 
 			i++
 		}
-		fmt.Fprintf(w, "</article>\n")
 
 		// New Reply form
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/newreply/?noteid=%d\" method=\"post\">\n", noteid)
@@ -433,7 +433,7 @@ ORDER BY createdt DESC;`
 		prevNoteid, prevNoteTitle := queryPrevNoteid(db, noteid)
 		nextNoteid, nextNoteTitle := queryNextNoteid(db, noteid)
 		if prevNoteid != -1 || nextNoteid != -1 {
-			fmt.Fprintf(w, "<nav class=\"pagenav smalltext doc-title2 margin-top margin-bottom\">\n")
+			fmt.Fprintf(w, "<nav class=\"flex-row text-xs text-fg-3 mt-base\">\n")
 			fmt.Fprintf(w, "<div>\n")
 			if prevNoteid != -1 {
 				fmt.Fprintf(w, fmt.Sprintf("<a href=\"/note/%d\">&lt;&lt; %s</a>\n", prevNoteid, prevNoteTitle))
@@ -446,10 +446,9 @@ ORDER BY createdt DESC;`
 			fmt.Fprintf(w, "</div>\n")
 			fmt.Fprintf(w, "</nav>\n")
 		}
-		fmt.Fprintf(w, "</section>\n")
-
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 
 		if login.Mdeditor == SIMPLEMDE_EDIT {
 			printSimpleMDECode(w, "replybody")
@@ -2761,20 +2760,20 @@ func printPageSidebar(db *sql.DB, w http.ResponseWriter, site *Site) {
 }
 
 func printPagingNav(w http.ResponseWriter, baseurl string, offset, limit, nrows int) {
-	fmt.Fprintf(w, "<div class=\"flex-row italic smalltext\">\n")
+	fmt.Fprintf(w, "<div class=\"flex-row text-italic text-xs\">\n")
 	if offset > 0 {
 		prevOffset := offset - limit
 		if prevOffset < 0 {
 			prevOffset = 0
 		}
 		prevLink := fmt.Sprintf("%s&offset=%d&limit=%d", baseurl, prevOffset, limit)
-		fmt.Fprintf(w, "  <p><a href=\"%s\">Previous</a></p>\n", prevLink)
+		fmt.Fprintf(w, "  <p><a class=\"text-xs text-fg-3\" href=\"%s\">Previous</a></p>\n", prevLink)
 	} else {
 		fmt.Fprintf(w, "  <p></p>\n")
 	}
 	if nrows == limit {
 		moreLink := fmt.Sprintf("%s&offset=%d&limit=%d", baseurl, offset+limit, limit)
-		fmt.Fprintf(w, "  <p><a href=\"%s\">More</a></p>\n", moreLink)
+		fmt.Fprintf(w, "  <p><a class=\"text-xs text-fg-3\" href=\"%s\">More</a></p>\n", moreLink)
 	}
 	fmt.Fprintf(w, "</div>\n")
 }
