@@ -2693,7 +2693,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	// Menu row 1
 	fmt.Fprintf(w, "<div>\n")
-	fmt.Fprintf(w, "<h1 class=\"text-fg-3\"><a href=\"/\">%s</a></h1>\n", title)
+	fmt.Fprintf(w, "<h1 class=\"heading text-fg-3\"><a href=\"/\">%s</a></h1>\n", title)
 	fmt.Fprintf(w, "</div>\n")
 
 	// Menu row 2
@@ -2713,7 +2713,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "</div>\n")
 
 	// User section (right part)
-	fmt.Fprintf(w, "<div class=\"align-right\">\n")
+	fmt.Fprintf(w, "<div class=\"text-right\">\n")
 	fmt.Fprintf(w, "<div class=\"\">\n")
 	fmt.Fprintf(w, "<span>%s</span>\n", login.Username)
 	fmt.Fprintf(w, "</div>\n")

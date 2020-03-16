@@ -6,7 +6,7 @@ body {
     background-color: var(--bg-1);
 }
 .main {
-    padding: 1rem;
+    padding-top: 1rem;
 }
 /*
 colors:
@@ -84,6 +84,11 @@ a {
 .text-fade-2 {color: var(--fade-2);}
 .text-italic {font-style: italic;}
 
+.text-left {text-align: left;}
+.text-right {text-align: right;}
+.text-center {text-align: center;}
+.text-justify {text-align: justify;}
+
 .body {
     margin: 0 auto 1rem;
     padding: 0;
@@ -141,11 +146,7 @@ a, a:visited {
     list-style-type: none;
 }
 .vertical-list li {
-    margin-bottom: 0.65rem;
-}
-.vertical-list .heading {
-    margin-bottom: 0.25rem;
-    font-size: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .line-menu {
