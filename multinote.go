@@ -98,7 +98,7 @@ Initialize new notes file:
 	}
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
-	http.HandleFunc("/", notesHandler(db))
+	http.HandleFunc("/", indexHandler(db))
 	http.HandleFunc("/note/", noteHandler(db))
 	http.HandleFunc("/createnote/", createNoteHandler(db))
 	http.HandleFunc("/editnote/", editNoteHandler(db))
@@ -235,7 +235,7 @@ func parseNoteid(url string) int64 {
 	return idtoi(matches[1])
 }
 
-func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
+func indexHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		login := getLoginUser(r, db)
 		if !hasPageAccess(login, querySite(db)) {
@@ -256,9 +256,9 @@ func notesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
-		fmt.Fprintf(w, "<ul class=\"vertical-list compact\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
+		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
 		s := `SELECT entry_id, title, summary, createdt, user.user_id, username, 
 (SELECT COUNT(*) FROM entry AS reply WHERE reply.thing = 1 AND reply.parent_id = note.entry_id) AS numreplies, 
 (SELECT COALESCE(MAX(reply.createdt), '') FROM entry AS reply where reply.thing = 1 AND reply.parent_id = note.entry_id) AS maxreplydt 
@@ -282,9 +282,9 @@ LIMIT ? OFFSET ?`
 			tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
 			fmt.Fprintf(w, "<li>\n")
-			fmt.Fprintf(w, "<h2 class=\"doc-title heading\"><a href=\"/note/%d\">%s</a></h2>\n", noteid, title)
+			fmt.Fprintf(w, "<h2 class=\"heading text-fg-2\"><a class=\"no-underline\" href=\"/note/%d\">%s</a></h2>\n", noteid, title)
 			if summary != "" {
-				fmt.Fprintf(w, "<div class=\"smalltext italic\">\n")
+				fmt.Fprintf(w, "<div class=\"text-xs text-italic mb-xs\">\n")
 				fmt.Fprintf(w, parseMarkdown(summary))
 				fmt.Fprintf(w, "</div>\n")
 			}
@@ -298,7 +298,7 @@ LIMIT ? OFFSET ?`
 		fmt.Fprintf(w, "</section>\n")
 
 		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")
 		printPageFoot(w)
 	}
 }
@@ -2607,7 +2607,7 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 
 func printByline(w io.Writer, login *User, noteid int64, noteUser *User, tcreatedt time.Time, nreplies int) {
 	createdt := tcreatedt.Format("2 Jan 2006")
-	fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
+	fmt.Fprintf(w, "<ul class=\"line-menu text-xs text-fade-1\">\n")
 	fmt.Fprintf(w, "<li>%s</li>\n", createdt)
 	fmt.Fprintf(w, "<li>%s</li>\n", noteUser.Username)
 	if nreplies > 0 {
@@ -2657,9 +2657,11 @@ func printPageHead(w io.Writer, jsurls []string, cssurls []string) {
 	}
 	fmt.Fprintf(w, "</head>\n")
 	fmt.Fprintf(w, "<body>\n")
+	fmt.Fprintf(w, "<section class=\"body\">\n")
 }
 
 func printPageFoot(w io.Writer) {
+	fmt.Fprintf(w, "</section>\n")
 	fmt.Fprintf(w, "</body>\n")
 	fmt.Fprintf(w, "</html>\n")
 }
@@ -2691,11 +2693,11 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 	// Menu row 1
 	fmt.Fprintf(w, "<div>\n")
-	fmt.Fprintf(w, "<h1><a href=\"/\">%s</a></h1>\n", title)
+	fmt.Fprintf(w, "<h1 class=\"text-fg-3\"><a href=\"/\">%s</a></h1>\n", title)
 	fmt.Fprintf(w, "</div>\n")
 
 	// Menu row 2
-	fmt.Fprintf(w, "<div class=\"smalltext italic\">\n")
+	fmt.Fprintf(w, "<div class=\"text-xs text-italic text-fg-3\">\n")
 	if login.Userid != -1 && login.Active {
 		fmt.Fprintf(w, "<a href=\"/createnote/\">create note</a>\n")
 	}
@@ -2717,7 +2719,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "</div>\n")
 
 	fmt.Fprintf(w, "<div>\n")
-	fmt.Fprintf(w, "<span class=\"smalltext italic\">\n")
+	fmt.Fprintf(w, "<span class=\"text-xs text-italic text-fg-3\">\n")
 	if login.Userid == ADMIN_ID {
 		fmt.Fprintf(w, "<a href=\"/adminsetup\">setup</a>\n")
 	} else if login.Userid != -1 && login.Active {
@@ -2735,7 +2737,7 @@ func printPageNav(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	fmt.Fprintf(w, "</nav>\n")
 
 	// Site description line
-	fmt.Fprintf(w, "<p class=\"finetext\">%s</p>\n", desc)
+	fmt.Fprintf(w, "<p class=\"text-xs text-fade-1 mt-xs\">%s</p>\n", desc)
 	fmt.Fprintf(w, "</header>\n")
 }
 
@@ -2744,9 +2746,9 @@ func printPageSidebar(db *sql.DB, w http.ResponseWriter, site *Site) {
 		return
 	}
 
-	fmt.Fprintf(w, "<section class=\"main-sidebar\">\n")
+	fmt.Fprintf(w, "<section class=\"col2\">\n")
 	if strings.TrimSpace(site.Sidebar1) != "" {
-		fmt.Fprintf(w, "<div class=\"sidebar-item compact spacedown\">\n")
+		fmt.Fprintf(w, "<div class=\"content text-sm text-fade-1 mb-base\">\n")
 		fmt.Fprintf(w, parseMarkdown(site.Sidebar1))
 		fmt.Fprintf(w, "</div>\n")
 	}
