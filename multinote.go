@@ -501,8 +501,8 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/createnote/\" method=\"post\">\n")
 		fmt.Fprintf(w, "<h1 class=\"heading\">Create Note</h1>")
 		if errmsg != "" {
@@ -529,10 +529,10 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">create note</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 
 		if login.Mdeditor == SIMPLEMDE_EDIT {
 			printSimpleMDECode(w, "body")
@@ -621,8 +621,8 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/editnote/?noteid=%d\" method=\"post\">\n", noteid)
 		fmt.Fprintf(w, "<h1 class=\"heading\">Edit Note</h1>")
 		if errmsg != "" {
@@ -648,10 +648,10 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">update note</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 
 		if login.Mdeditor == SIMPLEMDE_EDIT {
 			printSimpleMDECode(w, "body")
@@ -727,8 +727,8 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform displayonly\" action=\"/delnote/?noteid=%d\" method=\"post\">\n", noteid)
 		fmt.Fprintf(w, "<h1 class=\"heading warning\">Delete Note</h1>")
 		if errmsg != "" {
@@ -737,8 +737,8 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmt.Fprintf(w, "</div>\n")
 		}
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label class=\"byline\">title</label>\n")
-		fmt.Fprintf(w, "<input name=\"title\" type=\"text\" size=\"50\" readonly value=\"%s\">\n", title)
+		fmt.Fprintf(w, "<label for=\"title\">title</label>\n")
+		fmt.Fprintf(w, "<input id=\"title\" name=\"title\" type=\"text\" size=\"50\" readonly value=\"%s\">\n", title)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -746,18 +746,18 @@ func delNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<textarea id=\"summary\" name=\"summary\" rows=\"3\">%s</textarea>\n", summary)
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
-		fmt.Fprintf(w, "<label class=\"byline\">note</label>\n")
-		fmt.Fprintf(w, "<textarea name=\"body\" rows=\"25\" readonly>%s</textarea>\n", body)
+		fmt.Fprintf(w, "<label for=\"body\">note</label>\n")
+		fmt.Fprintf(w, "<textarea id=\"body\" name=\"body\" rows=\"25\" readonly>%s</textarea>\n", body)
 		fmt.Fprintf(w, "</div>\n")
 
 		fmt.Fprintf(w, "<div class=\"control\">\n")
 		fmt.Fprintf(w, "<button class=\"submit warning\">delete note</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -830,10 +830,10 @@ func browsefilesHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			fmtlink = "Table"
 			fmtparam = "table"
 		}
-		fmt.Fprintf(w, "<div class=\"flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
 		fmt.Fprintf(w, "  <h1 class=\"heading\">Browse Files</h1>\n")
-		fmt.Fprintf(w, "  <a class=\"smalltext\" href=\"/browsefiles?offset=%d&limit=%d&outputfmt=%s\">View as %s</a>\n", offset, limit, fmtparam, fmtlink)
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "  <a class=\"text-xs\" href=\"/browsefiles?offset=%d&limit=%d&outputfmt=%s\">View as %s</a>\n", offset, limit, fmtparam, fmtlink)
+		fmt.Fprintf(w, "</section>\n") // main
 
 		s := "SELECT entry.entry_id, title, folder, body, createdt, user.user_id, username FROM entry INNER JOIN file ON entry.entry_id = file.entry_id LEFT OUTER JOIN user ON entry.user_id = user.user_id WHERE thing = 2 ORDER BY createdt DESC LIMIT ? OFFSET ?"
 		rows, err := db.Query(s, limit, offset)
@@ -866,17 +866,17 @@ func printFilesGrid(w http.ResponseWriter, rows *sql.Rows, login *User, qparams 
 		rows.Scan(&fileid, &filename, &folder, &desc, &createdt, &fileUser.Userid, &fileUser.Username)
 		tcreatedt, _ := time.Parse(time.RFC3339, createdt)
 
-		fmt.Fprintf(w, "<article class=\"content file-item\">\n")
-		fmt.Fprintf(w, "<h1 class=\"heading doc-title\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filename)
+		fmt.Fprintf(w, "<article class=\"file-item\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading text-fg-2\"><a href=\"/file/%d\">%s</a></h1>\n", fileid, filename)
 		printFileByline(w, login, fileid, &fileUser, tcreatedt, qparams)
 
 		ext := fileext(filename)
 
 		descMarkup := parseMarkdown(desc)
 		if isFileExtImg(ext) {
-			fmt.Fprintf(w, "<div class=\"file-desc small\">\n")
+			fmt.Fprintf(w, "<div class=\"file-desc small content\">\n")
 		} else {
-			fmt.Fprintf(w, "<div class=\"file-desc large\">\n")
+			fmt.Fprintf(w, "<div class=\"file-desc large content\">\n")
 		}
 		fmt.Fprintf(w, descMarkup)
 		fmt.Fprintf(w, "</div>\n")
@@ -900,9 +900,9 @@ func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login *User, qparams
 	fmt.Fprintf(w, "<table class=\"table narrow\">\n")
 	fmt.Fprintf(w, "<thead>\n")
 	fmt.Fprintf(w, "    <tr>\n")
-	fmt.Fprintf(w, "        <th scope=\"col\" class=\"filename smalltext\">Filename</th>\n")
-	fmt.Fprintf(w, "        <th scope=\"col\" class=\"info smalltext\">Uploader</th>\n")
-	fmt.Fprintf(w, "        <th scope=\"col\" class=\"action smalltext\">Action</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"filename text-xs\">Filename</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"info text-xs\">Uploader</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"action text-xs\">Action</th>\n")
 	fmt.Fprintf(w, "    </tr>\n")
 	fmt.Fprintf(w, "</thead>\n")
 	fmt.Fprintf(w, "<tbody>\n")
@@ -919,12 +919,12 @@ func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login *User, qparams
 
 		fmt.Fprintf(w, "    <td class=\"filename\">\n")
 		fmt.Fprintf(w, "      <p class=\"flex-row margin-bottom\">")
-		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\"><a href=\"/file/%d\">%s</a></span>", fileid, filename)
+		fmt.Fprintf(w, "        <span class=\"text-fg-2 text-xs\"><a href=\"/file/%d\">%s</a></span>", fileid, filename)
 		if folder != "" {
-			fmt.Fprintf(w, "      <span class=\"smalltext italic\">/%s/</span>", folder)
+			fmt.Fprintf(w, "      <span class=\"text-xs text-italic\">/%s/</span>", folder)
 		}
 		fmt.Fprintf(w, "      </p>")
-		fmt.Fprintf(w, "      <div class=\"finetext\">\n")
+		fmt.Fprintf(w, "      <div class=\"text-xs text-fade-1\">\n")
 		//		if isFileExtImg(fileext(filename)) {
 		//			fmt.Fprintf(w, "<img class=\"thumbnail\" style=\"float: right;\" src=\"/file/%d\">\n", fileid)
 		//		}
@@ -932,14 +932,14 @@ func printFilesTable(w http.ResponseWriter, rows *sql.Rows, login *User, qparams
 		fmt.Fprintf(w, "      </div>\n")
 		fmt.Fprintf(w, "    </td>\n")
 
-		fmt.Fprintf(w, "    <td class=\"info finetext\">\n")
+		fmt.Fprintf(w, "    <td class=\"info text-xs text-fade-1\">\n")
 		fmt.Fprintf(w, "      <ul class=\"line-menu\">\n")
 		fmt.Fprintf(w, "        <li>%s</li>\n", fileUser.Username)
 		fmt.Fprintf(w, "        <li>%s</li>\n", screatedt)
 		fmt.Fprintf(w, "      </ul>\n")
 		fmt.Fprintf(w, "    </td>\n")
 
-		fmt.Fprintf(w, "    <td class=\"action finetext\">\n")
+		fmt.Fprintf(w, "    <td class=\"action text-xs text-fade-1\">\n")
 		fmt.Fprintf(w, "      <ul class=\"line-menu\">\n")
 		fmt.Fprintf(w, "        <li><a href=\"/editfile?fileid=%d&%s\">Update</a></li>\n", fileid, qparams)
 		fmt.Fprintf(w, "        <li><a href=\"/delfile?fileid=%d&%s\">Delete</a></li>\n", fileid, qparams)
@@ -1116,8 +1116,8 @@ func uploadFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/uploadfile/\" method=\"post\" enctype=\"multipart/form-data\">\n")
 		fmt.Fprintf(w, "<h1 class=\"heading\">Upload File</h1>")
 		if errmsg != "" {
@@ -1155,10 +1155,10 @@ func uploadFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">upload file</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -1292,8 +1292,8 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/editfile/?fileid=%d&offset=%d&limit=%d&outputfmt=%s\" method=\"post\" enctype=\"multipart/form-data\">\n", fileid, offset, limit, outputfmt)
 		fmt.Fprintf(w, "<h1 class=\"heading\">Edit File</h1>")
 		if errmsg != "" {
@@ -1331,10 +1331,10 @@ func editFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">update file</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -1418,8 +1418,8 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/delfile/?fileid=%d&offset=%d&limit=%d&outputfmt=%s\" method=\"post\" enctype=\"multipart/form-data\">\n", fileid, offset, limit, outputfmt)
 		fmt.Fprintf(w, "<h1 class=\"heading warning\">Delete File</h1>")
 		if errmsg != "" {
@@ -1452,10 +1452,10 @@ func delFileHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">delete file</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -1513,8 +1513,8 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		// Reply re-entry form
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/newreply/?noteid=%d\" method=\"post\">\n", noteid)
 		if errmsg != "" {
@@ -1531,10 +1531,10 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">add reply</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 
 		if login.Mdeditor == SIMPLEMDE_EDIT {
 			printSimpleMDECode(w, "replybody")
@@ -1612,8 +1612,8 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/editreply/?replyid=%d\" method=\"post\">\n", replyid)
 		fmt.Fprintf(w, "<h1 class=\"heading\">Edit Reply</h1>")
 		if errmsg != "" {
@@ -1631,10 +1631,10 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "</form>\n")
 
 		fmt.Fprintf(w, "</article>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 
 		if login.Mdeditor == SIMPLEMDE_EDIT {
 			printSimpleMDECode(w, "replybody")
@@ -1700,8 +1700,8 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform displayonly\" action=\"/delreply/?replyid=%d\" method=\"post\">\n", replyid)
 		fmt.Fprintf(w, "<h1 class=\"heading warning\">Delete Reply</h1>")
 		if errmsg != "" {
@@ -1717,10 +1717,10 @@ func delReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit warning\">delete reply</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -1739,10 +1739,11 @@ func searchHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<h1 class=\"heading\">Search</h1>")
+		fmt.Fprintf(w, "<section class=\"main\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading mb-xs\">Search</h1>")
 		fmt.Fprintf(w, "<form class=\"simpleform flex\" action=\"/search/\" method=\"get\">\n")
 
-		fmt.Fprintf(w, "<input class=\"stretchwidth\" name=\"q\" placeholder=\"search\" value=\"%s\">\n", html.EscapeString(q))
+		fmt.Fprintf(w, "<input class=\"flex-grow\" name=\"q\" placeholder=\"search\" value=\"%s\">\n", html.EscapeString(q))
 		fmt.Fprintf(w, "<button class=\"submit\">Search</button>\n")
 		fmt.Fprintf(w, "</form>\n")
 
@@ -1771,6 +1772,8 @@ ORDER BY fts.rank`
 		if rows != nil {
 			printSearchResultsTable(w, rows)
 		}
+
+		fmt.Fprintf(w, "</section>\n") // main
 		printPageFoot(w)
 	}
 }
@@ -1838,8 +1841,8 @@ func printSearchResultsTable(w http.ResponseWriter, rows *sql.Rows) {
 	fmt.Fprintf(w, "<table class=\"table narrow\">\n")
 	fmt.Fprintf(w, "<thead>\n")
 	fmt.Fprintf(w, "    <tr>\n")
-	fmt.Fprintf(w, "        <th scope=\"col\" class=\"title smalltext\">Title</th>\n")
-	fmt.Fprintf(w, "        <th scope=\"col\" class=\"info smalltext\">Uploader</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"title text-xs\">Title</th>\n")
+	fmt.Fprintf(w, "        <th scope=\"col\" class=\"info text-xs\">Uploader</th>\n")
 	fmt.Fprintf(w, "    </tr>\n")
 	fmt.Fprintf(w, "</thead>\n")
 	fmt.Fprintf(w, "<tbody>\n")
@@ -1855,7 +1858,7 @@ func printSearchResultsTable(w http.ResponseWriter, rows *sql.Rows) {
 		fmt.Fprintf(w, "  <tr>\n")
 
 		fmt.Fprintf(w, "    <td class=\"title\">\n")
-		fmt.Fprintf(w, "      <p class=\"flex-row2 margin-bottom\">")
+		fmt.Fprintf(w, "      <p class=\"mb-base\">")
 		var link string
 		var sthing string
 		if thing == FILE {
@@ -1868,12 +1871,12 @@ func printSearchResultsTable(w http.ResponseWriter, rows *sql.Rows) {
 			link = fmt.Sprintf("<a href=\"/note/%d\">%s</a>", entryid, title)
 			sthing = "(note)"
 		}
-		fmt.Fprintf(w, "        <span class=\"doc-title smalltext\">%s</span> <span class=\"finetext italic\">%s</a>", link, sthing)
+		fmt.Fprintf(w, "        <span class=\"heading text-fg-3 text-xs\">%s</span> <span class=\"text-xs text-fade-1 text-italic\">%s</a>", link, sthing)
 		fmt.Fprintf(w, "      </p>")
-		fmt.Fprintf(w, "      <div class=\"compact finetext\">%s</div>", parseMarkdown(body))
+		fmt.Fprintf(w, "      <div class=\"compact text-xs text-fade-1\">%s</div>", parseMarkdown(body))
 		fmt.Fprintf(w, "    </td>\n")
 
-		fmt.Fprintf(w, "    <td class=\"info finetext\">\n")
+		fmt.Fprintf(w, "    <td class=\"info text-xs text-fade-1\">\n")
 		fmt.Fprintf(w, "      <ul class=\"line-menu\">\n")
 		fmt.Fprintf(w, "        <li>%s</li>\n", username)
 		fmt.Fprintf(w, "        <li>%s</li>\n", screatedt)
@@ -1972,11 +1975,11 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		site := querySite(db)
 		if strings.TrimSpace(site.Loginmsg) != "" {
-			fmt.Fprintf(w, "<div class=\"simplebox compact spacedown\">\n")
+			fmt.Fprintf(w, "<div class=\"simplebox content mb-base\">\n")
 			fmt.Fprintf(w, parseMarkdown(site.Loginmsg))
 			fmt.Fprintf(w, "</div>\n")
 		}
@@ -2002,10 +2005,10 @@ func loginHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">login</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -2023,24 +2026,24 @@ func adminsetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
-		fmt.Fprintf(w, "<h1 class=\"heading\">Admin Setup</h1>\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading mb-sm\">Admin Setup</h1>\n")
 
 		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
 		fmt.Fprintf(w, "  <li>\n")
-		fmt.Fprintf(w, "    <p><a href=\"/sitesettings/\">Site Settings</a></p>\n")
-		fmt.Fprintf(w, "    <p class=\"finetext\">Set site title and description.</p>\n")
+		fmt.Fprintf(w, "    <p class=\"text-fg-3\"><a href=\"/sitesettings/\">Site Settings</a></p>\n")
+		fmt.Fprintf(w, "    <p class=\"text-xs text-fade-1\">Set site title and description.</p>\n")
 		fmt.Fprintf(w, "  </li>\n")
 		fmt.Fprintf(w, "  <li>\n")
-		fmt.Fprintf(w, "    <p><a href=\"/userssetup/\">Users</a></p>\n")
-		fmt.Fprintf(w, "    <p class=\"finetext\">Set usernames and passwords.</p>\n")
+		fmt.Fprintf(w, "    <p class=\"text-fg-3\"><a href=\"/userssetup/\">Users</a></p>\n")
+		fmt.Fprintf(w, "    <p class=\"text-xs text-fade-1\">Set usernames and passwords.</p>\n")
 		fmt.Fprintf(w, "  </li>\n")
 		fmt.Fprintf(w, "</ul>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -2081,15 +2084,15 @@ func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
-		fmt.Fprintf(w, "<h2 class=\"heading doc-title\">User Settings</h2>\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
+		fmt.Fprintf(w, "<h2 class=\"heading mb-sm\">User Settings</h2>\n")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
 			fmt.Fprintf(w, "</div>\n")
 		}
-		fmt.Fprintf(w, "<ul class=\"vertical-list light-text\">\n")
+		fmt.Fprintf(w, "<ul class=\"vertical-list text-fade-1\">\n")
 		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">change username</a>\n", login.Userid)
 		fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">change password</a>\n", login.Userid)
 		fmt.Fprintf(w, "</ul>\n")
@@ -2107,10 +2110,10 @@ func usersettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">apply</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -2162,10 +2165,10 @@ func newUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/newuser/\" method=\"post\">\n")
-		fmt.Fprintf(w, "<h1 class=\"heading\">Create User</h1>")
+		fmt.Fprintf(w, "<h1 class=\"heading mb-sm\">Create User</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
@@ -2190,10 +2193,10 @@ func newUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">add user</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -2282,10 +2285,10 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/edituser/?userid=%d&setpwd=%s\" method=\"post\">\n", userid, setpwd)
-		fmt.Fprintf(w, "<h1 class=\"heading\">Edit User</h1>")
+		fmt.Fprintf(w, "<h1 class=\"heading mb-sm\">Edit User</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
@@ -2318,10 +2321,10 @@ func editUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">update user</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -2381,13 +2384,13 @@ func activateUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/activateuser/?userid=%d&setactive=%d\" method=\"post\">\n", userid, setactive)
 		if setactive == 0 {
-			fmt.Fprintf(w, "<h1 class=\"heading\">Deactivate User</h1>")
+			fmt.Fprintf(w, "<h1 class=\"heading mb-sm\">Deactivate User</h1>")
 		} else {
-			fmt.Fprintf(w, "<h1 class=\"heading\">Activate User</h1>")
+			fmt.Fprintf(w, "<h1 class=\"heading mb-sm\">Activate User</h1>")
 		}
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
@@ -2407,10 +2410,10 @@ func activateUserHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -2469,10 +2472,10 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
 
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
 		fmt.Fprintf(w, "<form class=\"simpleform\" action=\"/sitesettings/\" method=\"post\">\n")
-		fmt.Fprintf(w, "<h1 class=\"heading\">Site Settings</h1>")
+		fmt.Fprintf(w, "<h1 class=\"heading mb-sm\">Site Settings</h1>")
 		if errmsg != "" {
 			fmt.Fprintf(w, "<div class=\"control\">\n")
 			fmt.Fprintf(w, "<p class=\"error\">%s</p>\n", errmsg)
@@ -2525,10 +2528,10 @@ func sitesettingsHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		fmt.Fprintf(w, "<button class=\"submit\">update settings</button>\n")
 		fmt.Fprintf(w, "</div>\n")
 		fmt.Fprintf(w, "</form>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -2547,12 +2550,12 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		printPageHead(w, nil, nil)
 		printPageNav(w, r, db)
-		fmt.Fprintf(w, "<div class=\"main\">\n")
-		fmt.Fprintf(w, "<section class=\"main-content\">\n")
-		fmt.Fprintf(w, "<h1 class=\"heading\">Users Setup</h1>\n")
+		fmt.Fprintf(w, "<section class=\"main flex-row\">\n")
+		fmt.Fprintf(w, "<section class=\"col1\">\n")
+		fmt.Fprintf(w, "<h1 class=\"heading mb-sm\">Users Setup</h1>\n")
 		fmt.Fprintf(w, "<ul class=\"vertical-list\">\n")
 		fmt.Fprintf(w, "<li>\n")
-		fmt.Fprintf(w, "  <ul class=\"line-menu finetext\">\n")
+		fmt.Fprintf(w, "  <ul class=\"line-menu text-xs text-fade-1\">\n")
 		fmt.Fprintf(w, "    <li><p><a href=\"/newuser/\">Create new user</a></p></li>\n")
 		fmt.Fprintf(w, "  </ul>\n")
 		fmt.Fprintf(w, "</li>\n")
@@ -2574,10 +2577,10 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 				if u.Active {
 					fmt.Fprintf(w, "<p>%s</p>\n", u.Username)
 				} else {
-					fmt.Fprintf(w, "<p class=\"greyed-text\">(%s)</p>\n", u.Username)
+					fmt.Fprintf(w, "<p class=\"text-fade-1\">(%s)</p>\n", u.Username)
 				}
 
-				fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
+				fmt.Fprintf(w, "<ul class=\"line-menu text-xs text-fade-1\">\n")
 				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d\">change username</a>\n", u.Userid)
 				fmt.Fprintf(w, "  <li><a href=\"/edituser?userid=%d&setpwd=1\">set password</a>\n", u.Userid)
 
@@ -2596,10 +2599,10 @@ func userssetupHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		fmt.Fprintf(w, "</ul>\n")
-		fmt.Fprintf(w, "</section>\n")
 
-		printPageSidebar(db, w, querySite(db))
-		fmt.Fprintf(w, "</div>\n")
+		fmt.Fprintf(w, "</section>\n")         // col1
+		printPageSidebar(db, w, querySite(db)) // col2
+		fmt.Fprintf(w, "</section>\n")         // main
 		printPageFoot(w)
 	}
 }
@@ -2626,14 +2629,14 @@ func printByline(w io.Writer, login *User, noteid int64, noteUser *User, tcreate
 
 func printFileByline(w io.Writer, login *User, fileid int64, fileUser *User, tcreatedt time.Time, qparams string) {
 	createdt := tcreatedt.Format("2 Jan 2006")
-	fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
+	fmt.Fprintf(w, "<ul class=\"line-menu text-xs text-fade-1\">\n")
 	fmt.Fprintf(w, "<li>%s</li>\n", createdt)
 	fmt.Fprintf(w, "<li>%s</li>\n", fileUser.Username)
 	fmt.Fprintf(w, "</ul>\n")
 
 	// Show edit/delete links if admin or active user owner of file.
 	if login.Userid == ADMIN_ID || (fileUser.Userid == login.Userid && login.Active) {
-		fmt.Fprintf(w, "<ul class=\"line-menu finetext\">\n")
+		fmt.Fprintf(w, "<ul class=\"line-menu text-xs text-fade-1\">\n")
 		fmt.Fprintf(w, "<li><a href=\"/editfile/?fileid=%d&%s\">Update</a></li>\n", fileid, qparams)
 		fmt.Fprintf(w, "<li><a href=\"/delfile/?fileid=%d&%s\">Delete</a></li>\n", fileid, qparams)
 		fmt.Fprintf(w, "</ul>\n")
@@ -2752,7 +2755,7 @@ func printPageSidebar(db *sql.DB, w http.ResponseWriter, site *Site) {
 		fmt.Fprintf(w, "</div>\n")
 	}
 	if strings.TrimSpace(site.Sidebar2) != "" {
-		fmt.Fprintf(w, "<div class=\"sidebar-item compact spacedown\">\n")
+		fmt.Fprintf(w, "<div class=\"sidebar-item compact mb-base\">\n")
 		fmt.Fprintf(w, parseMarkdown(site.Sidebar2))
 		fmt.Fprintf(w, "</div>\n")
 	}
