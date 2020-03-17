@@ -470,20 +470,26 @@ func createNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if r.Method == "POST" {
-			title = r.FormValue("title")
+			title = strings.TrimSpace(r.FormValue("title"))
 			summary = r.FormValue("summary")
 			body = r.FormValue("body")
 			body = strings.ReplaceAll(body, "\r", "") // CRLF => CR
 			createdt := time.Now().Format(time.RFC3339)
 
-			s := "INSERT INTO entry (thing, title, summary, body, createdt, user_id) VALUES (?, ?, ?, ?, ?, ?);"
-			_, err := sqlexec(db, s, NOTE, title, summary, body, createdt, login.Userid)
-			if err != nil {
-				log.Printf("DB error creating note: %s\n", err)
-				errmsg = "A problem occured. Please try again."
-			}
+			for {
+				if title == "" {
+					errmsg = "Please enter a title."
+					break
+				}
 
-			if errmsg == "" {
+				s := "INSERT INTO entry (thing, title, summary, body, createdt, user_id) VALUES (?, ?, ?, ?, ?, ?);"
+				_, err := sqlexec(db, s, NOTE, title, summary, body, createdt, login.Userid)
+				if err != nil {
+					log.Printf("DB error creating note: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
 				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
 			}
@@ -587,7 +593,7 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if r.Method == "POST" {
-			title = r.FormValue("title")
+			title = strings.TrimSpace(r.FormValue("title"))
 			summary = r.FormValue("summary")
 			body = r.FormValue("body")
 			createdt := time.Now().Format(time.RFC3339)
@@ -596,14 +602,20 @@ func editNoteHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 			// CRLF causes problems in markdown parsing.
 			body = strings.ReplaceAll(body, "\r", "")
 
-			s := "UPDATE entry SET title = ?, summary = ?, body = ?, createdt = ? WHERE entry_id = ? AND thing = 0"
-			_, err = sqlexec(db, s, title, summary, body, createdt, noteid)
-			if err != nil {
-				log.Printf("DB error updating noteid %d: %s\n", noteid, err)
-				errmsg = "A problem occured. Please try again."
-			}
+			for {
+				if title == "" {
+					errmsg = "Please enter a title."
+					break
+				}
 
-			if errmsg == "" {
+				s := "UPDATE entry SET title = ?, summary = ?, body = ?, createdt = ? WHERE entry_id = ? AND thing = 0"
+				_, err = sqlexec(db, s, title, summary, body, createdt, noteid)
+				if err != nil {
+					log.Printf("DB error updating noteid %d: %s\n", noteid, err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
 				http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
 				return
 			}
@@ -1484,18 +1496,24 @@ func newReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if r.Method == "POST" {
-			replybody = r.FormValue("replybody")
+			replybody = strings.TrimSpace(r.FormValue("replybody"))
 			replybody = strings.ReplaceAll(replybody, "\r", "") // CRLF => CR
 			createdt := time.Now().Format(time.RFC3339)
 
-			s := "INSERT INTO entry (thing, parent_id, title, body, createdt, user_id) VALUES (?, ?, ?, ?, ?, ?)"
-			_, err := sqlexec(db, s, REPLY, noteid, "", replybody, createdt, login.Userid)
-			if err != nil {
-				log.Printf("DB error creating reply: %s\n", err)
-				errmsg = "A problem occured. Please try again."
-			}
+			for {
+				if replybody == "" {
+					errmsg = "Please enter a reply."
+					break
+				}
 
-			if errmsg == "" {
+				s := "INSERT INTO entry (thing, parent_id, title, body, createdt, user_id) VALUES (?, ?, ?, ?, ?, ?)"
+				_, err := sqlexec(db, s, REPLY, noteid, "", replybody, createdt, login.Userid)
+				if err != nil {
+					log.Printf("DB error creating reply: %s\n", err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
 				http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
 				return
 			}
@@ -1584,17 +1602,23 @@ func editReplyHandler(db *sql.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if r.Method == "POST" {
-			replybody = r.FormValue("replybody")
+			replybody = strings.TrimSpace(r.FormValue("replybody"))
 			replybody = strings.ReplaceAll(replybody, "\r", "") // CRLF => CR
 
-			s := "UPDATE entry SET body = ? WHERE entry_id = ? AND thing = 1"
-			_, err = sqlexec(db, s, replybody, replyid)
-			if err != nil {
-				log.Printf("DB error updating replyid %d: %s\n", replyid, err)
-				errmsg = "A problem occured. Please try again."
-			}
+			for {
+				if replybody == "" {
+					errmsg = "Please enter a reply."
+					break
+				}
 
-			if errmsg == "" {
+				s := "UPDATE entry SET body = ? WHERE entry_id = ? AND thing = 1"
+				_, err = sqlexec(db, s, replybody, replyid)
+				if err != nil {
+					log.Printf("DB error updating replyid %d: %s\n", replyid, err)
+					errmsg = "A problem occured. Please try again."
+					break
+				}
+
 				http.Redirect(w, r, fmt.Sprintf("/note/%d", noteid), http.StatusSeeOther)
 				return
 			}
