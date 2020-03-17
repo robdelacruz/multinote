@@ -2651,6 +2651,7 @@ func printPageHead(w io.Writer, jsurls []string, cssurls []string) {
 	fmt.Fprintf(w, "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
 	fmt.Fprintf(w, "<title>Website</title>\n")
 	fmt.Fprintf(w, "<link rel=\"stylesheet\" type=\"text/css\" href=\"/static/style.css\">\n")
+	fmt.Fprintf(w, "<link rel=\"stylesheet\" type=\"text/css\" href=\"/static/mnstyle.css\">\n")
 	for _, cssurl := range cssurls {
 		fmt.Fprintf(w, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">\n", cssurl)
 	}
