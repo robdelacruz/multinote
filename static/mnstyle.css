@@ -1,0 +1,119 @@
+html {
+    font-size: 1em;
+}
+body {
+    font-family: "Helvetica", "Arial", sans-serif;
+    background-color: var(--bg-1);
+}
+.main {
+    padding-top: 1rem;
+}
+.body {
+    margin: 0 auto 1rem;
+    padding: 0;
+    max-width: 900px;
+    min-height: 500px;
+    background-color: var(--bg-1);
+    color: var(--fg-1);
+}
+.body .col1 {
+    flex-basis: 67%;
+    margin-right: 1rem;
+}
+.body .col2 {
+    flex-basis: 33%;
+}
+
+.content a {
+    color: var(--fg-3);
+}
+hr {
+    border: dashed 1px;
+    color: var(--fade-1);
+}
+.table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+.table thead th {
+    border-bottom: 2px solid #555;
+}
+.table tbody tr {
+    border-bottom: 1px solid #333;
+}
+.table th, .table td {
+    padding: 0.5em 0.75em;
+    text-align: left;
+    vertical-align: top;
+}
+.table.narrow th, .table.narrow td {
+    padding: 0.3em;
+}
+.table p {
+    margin: 0;
+    padding: 0;
+}
+
+th.filename, td.filename {
+    width: 50%;
+}
+th.info, td.info {
+    width: 30%;
+    text-align: center;
+}
+th.action, td.action {
+    width: 15%;
+    text-align: center;
+}
+.file-browser {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: space-between;
+    justify-content: flex-start;
+}
+.file-item {
+    border: 1px solid #888;
+    padding: 0.2em;
+    flex-basis: 170px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    overflow: hidden;
+    margin-bottom: 1em;
+}
+.file-item .heading {
+    font-size: 0.8em;
+    word-break: break-all;
+}
+.file-item img.preview {
+    max-width: 100%;
+}
+.file-item .file-desc {
+    font-size: 0.8em;
+    overflow: hidden;
+    margin: 0.2em 0;
+}
+.file-item p {
+    padding: 0;
+    margin: 0;
+}
+.file-desc.large {
+    max-height: 100%;
+}
+.file-desc.small {
+    max-height: 1.2em;
+}
+img.thumbnail {
+    max-width: 170px;
+}
+.simplebox {
+    border: 1px solid #888;
+    border-radius: 5px;
+    padding: 0.5em 1em;
+}
+
+/* overrides of style.css */
+.navbar a {
+    text-decoration: underline;
+}
