@@ -98,6 +98,7 @@ Initialize new notes file:
 	}
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "./static/edit-pencil.ico") })
 	http.HandleFunc("/", indexHandler(db))
 	http.HandleFunc("/note/", noteHandler(db))
 	http.HandleFunc("/createnote/", createNoteHandler(db))
