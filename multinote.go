@@ -209,16 +209,16 @@ func createAndInitTables(newfile string) {
 		"CREATE TABLE site (site_id INTEGER PRIMARY KEY NOT NULL, title TEXT NOT NULL, desc TEXT NOT NULL, requireloginforpageview INTEGER NOT NULL, allowanonreplies INTEGER NOT NULL, loginmsg TEXT, sidebar1 TEXT NOT NULL, sidebar2 TEXT NOT NULL);",
 		"INSERT INTO user (user_id, username, password, active, mdeditor) VALUES (1, 'admin', '', 1, 0);",
 		"INSERT INTO user (user_id, username, password, active, mdeditor) VALUES (2, 'guest', '', 1, 0);",
-		`INSERT INTO site (site_id, title, desc, requireloginforpageview, allowanonreplies, loginmsg, sidebar1, sidebar2) VALUES (1, 'Group Notes', 'Repository for Notes', 0, 0,  '', 
-'## About GroupNotes
-GroupNotes is a multi-user web based note sharing system. Inspired by PLATO Notes. 
+		`INSERT INTO site (site_id, title, desc, requireloginforpageview, allowanonreplies, loginmsg, sidebar1, sidebar2) VALUES (1, 'MultiNote', 'Repository for Notes', 0, 0,  '', 
+'## About MultiNote
+MultiNote is a multi-user web based note sharing system. Inspired by PLATO Notes. 
 
 - Add and edit notes.
 - Upload files, images.
 - Reply to notes.
 - Multiple users.
 - Use to keep track of records, as a weblog, or CMS.
-- MIT License
+- MIT License [project page](https://github.com/robdelacruz/multinote)
 ',
 '<div style="color: #d6deeb; background-color: #2d2c5d; padding: 0.5em; margin: 0; border: 1px solid; text-align: center;">
 Donate to the Developer
