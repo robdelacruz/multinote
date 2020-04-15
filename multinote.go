@@ -49,8 +49,6 @@ type Site struct {
 }
 
 func main() {
-	port := "8000"
-
 	os.Args = os.Args[1:]
 	sw, parms := parseArgs(os.Args)
 
@@ -71,7 +69,7 @@ func main() {
 		s := `Usage:
 
 Start webservice using existing notes file:
-	groupnotesd <notes_file>
+	groupnotesd <notes_file> [port]
 
 Initialize new notes file:
 	groupnotesd -i <notes_file>
@@ -122,6 +120,11 @@ Initialize new notes file:
 	http.HandleFunc("/activateuser/", activateUserHandler(db))
 	http.HandleFunc("/sitesettings/", sitesettingsHandler(db))
 	http.HandleFunc("/userssetup/", userssetupHandler(db))
+
+	port := "8000"
+	if len(parms) > 1 {
+		port = parms[1]
+	}
 	fmt.Printf("Listening on %s...\n", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	log.Fatal(err)
