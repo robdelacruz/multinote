@@ -1,6 +1,6 @@
-## About GroupNotes
+## About MultiNote
 
-GroupNotes is a multi-user web based note sharing system. Inspired by PLATO Notes. 
+MultiNote is a multi-user web based note sharing system. Inspired by PLATO Notes. 
 
 - Add and edit notes.
 - Upload files, images.
@@ -12,13 +12,12 @@ GroupNotes is a multi-user web based note sharing system. Inspired by PLATO Note
 ## Build and Install
 
     $ make dep
-    $ sqlite3 notes.db < create_tables.sql
     $ make
-    $ ./groupnotesd -i notes.db
+    $ ./multinote -i notes.db
 
-    Run 'groupnotesd <notes_file>' to start the web service.
+    Run 'multiNote <notes_file>' to start the web service.
 
-groupnotes uses a single sqlite3 database file to store all notes, uploaded files, users, and site settings.
+MultiNote uses a single sqlite3 database file to store all notes, uploaded files, users, and site settings.
 
 ## Screenshots
 
@@ -30,5 +29,5 @@ groupnotes uses a single sqlite3 database file to store all notes, uploaded file
 
 ## Contact
     Twitter: @robdelacruz
-    Source: http://github.com/robdelacruz/groupnotes
+    Source: http://github.com/robdelacruz/multinote
 
