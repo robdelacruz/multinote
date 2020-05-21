@@ -34,6 +34,10 @@
 .mx-auto {margin-left: auto; margin-right: auto;}
 .my-auto {margin-top: auto; margin-bottom: auto;}
 
+.px-1 {padding-left: 0.25rem; padding-right: 0.25rem;}
+.mx-1 {margin-left: 0.25rem; margin-right: 0.25rem;}
+.mr-1 {margin-right: 0.25rem;}
+
 .text-xs {font-size: 0.75rem;}
 .text-sm {font-size: 0.875rem;}
 .text-base {font-size: 1rem;}
@@ -65,6 +69,7 @@
 .flex-grow-0 {flex-grow: 0;}
 .flex-shrink {flex-shrink: 1;}
 .flex-shrink-0 {flex-shrink: 0;}
+.justify-between {justify-content: space-between;}
 
 p, ul, li, h1, h2, h3, h4, blockquote {
     margin: 0;
@@ -83,27 +88,21 @@ a, a:visited {
 .box {
     border: 1px solid #ddd;
 }
+.btn-pill-0 {background-color: #ddd;}
 
 .heading {
     font-size: 1rem;
 }
-
-.content h1, .content h2, .content h3, .content h4 {font-size: 1.125rem; margin-bottom: 0.5rem;}
-.content p, .content ul, .content ol, .content blockquote, .content pre {margin-bottom: 1rem;}
-.content a {color: var(--fg-3);}
-.content ul {list-style-type: disc; list-style-position: inside;}
-.content ol {@apply list-style-type: decimal; list-style-position: inside;}
-.content blockquote {background-color: #4a5568; padding: 0.5rem;}
-.content pre {background-color: #4a5568; padding: 0.5rem;}
-.content code {font-family: monospace; margin: 0 0.25rem;}
-.content img[src*="#thumb"] {width: 100px;}
-.content img[src*="#sm"] {width: 150px;}
-.content img[src*="#med"] {width: 180px;}
-.content img[src*="#lg"] {width: 200px;}
-.content img[src*="#xl"] {width: 300px;}
-.content img[src*="#stretch"] {width: 100%;}
-.content img[src*="#left"] {float: left; margin-right: 0.5rem;}
-.content img[src*="#right"] {float: right; margin-left: 0.5rem;}
+.content .heading, .content h1, .content h2, .content h3, .content h4, .content h5 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+.content p, .content .heading, .content ul {
+    margin-bottom: 0.5rem;
+}
+.content ul {
+    margin-left: 2rem;
+}
 
 .vertical-list {
     list-style-type: none;

@@ -24,9 +24,23 @@ body {
     flex-basis: 33%;
 }
 
-.content a {
-    color: var(--fg-3);
-}
+.content h1, .content h2, .content h3, .content h4 {font-size: 1.125rem; margin-bottom: 0.5rem;}
+.content p, .content ul, .content ol, .content blockquote, .content pre {margin-bottom: 1rem;}
+.content a {color: var(--fg-3);}
+.content ul {list-style-type: disc; list-style-position: inside;}
+.content ol {@apply list-style-type: decimal; list-style-position: inside;}
+.content blockquote {background-color: #4a5568; padding: 0.5rem;}
+.content pre {background-color: #4a5568; padding: 0.5rem;}
+.content code {font-family: monospace; margin: 0 0.25rem;}
+.content img[src*="#thumb"] {width: 100px;}
+.content img[src*="#sm"] {width: 150px;}
+.content img[src*="#med"] {width: 180px;}
+.content img[src*="#lg"] {width: 200px;}
+.content img[src*="#xl"] {width: 300px;}
+.content img[src*="#stretch"] {width: 100%;}
+.content img[src*="#left"] {float: left; margin-right: 0.5rem;}
+.content img[src*="#right"] {float: right; margin-left: 0.5rem;}
+
 hr {
     border: dashed 1px;
     color: var(--fade-1);
