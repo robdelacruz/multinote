@@ -28,6 +28,6 @@ MultiNote uses a single sqlite3 database file to store all notes, uploaded files
 ![files gallery](screenshots/files_gridview.png)
 
 ## Contact
-    Twitter: @robdelacruz
+    Twitter: @robcomputing
     Source: http://github.com/robdelacruz/multinote
 
